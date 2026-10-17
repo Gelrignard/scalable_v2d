@@ -1,9 +1,10 @@
 # Correction stages and entry points
 
 The correction module starts from a retargeted reference. Direct dataset access
-and SOMA decoding live at the repository root. All commands below run from that
-root using the CPU environment described in [SETUP.md](../SETUP.md), except
-`decode_tier1`, which uses the separate SOMA environment.
+lives in `data_fetch/`; SOMA model setup and decoding live in `soma_tools/`.
+All commands below run from the repository root using the CPU environment
+described in [SETUP.md](../SETUP.md), except `soma_tools.decode_tier1`, which
+uses the separate SOMA environment.
 
 ```mermaid
 flowchart LR
@@ -87,10 +88,15 @@ The existing book audit still reports `accepted_as_feasible_manipulation=false`.
 | `python -m correction.robot_repair` | `python -m correction.scripts.repair_robot` |
 | Other `python -m correction.<runner>` commands | `python -m correction.scripts.<runner>` |
 | `correction/run.ps1` | `correction/scripts/run.ps1` |
-| `python -m correction.fetch_sample` | `python -m fetch_sample` |
-| `python -m correction.fetch_soma_assets` | `python -m fetch_soma_assets` |
-| `python -m correction.decode_tier1` | `python -m decode_tier1` |
-| `python -m correction.tier1_diagnostic` | `python -m tier1_diagnostic` |
+| `python -m correction.fetch_sample` | `python -m data_fetch.fetch_sample` |
+| `python -m correction.fetch_soma_assets` | `python -m soma_tools.fetch_assets` |
+| `python -m correction.decode_tier1` | `python -m soma_tools.decode_tier1` |
+| `python -m correction.tier1_diagnostic` | `python -m data_fetch.tier1_diagnostic` |
+
+The briefly root-level commands `fetch_sample`, `tier1_diagnostic`,
+`fetch_soma_assets`, and `decode_tier1` now use the same replacements in the
+right column. SOMA dependencies are in `soma_tools/requirements.txt`; the selected
+NVIDIA example download is `python -m data_fetch.fetch_preview_assets`.
 
 Old flat module aliases are intentionally absent so there is one implementation
 location per stage. Existing generated data stays in `correction/data/` and

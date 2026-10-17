@@ -21,7 +21,7 @@ experiments/tier2_pilot.json before implementation.
 
 ## Existing gaps that must not be hidden
 
-- fetch_sample.py and decode_tier1.py hardcode Tier 1 provenance.
+- data_fetch/fetch_sample.py and soma_tools/decode_tier1.py hardcode Tier 1 provenance.
   Passing Tier 2 files without adapting this code is not an acceptable solution.
 - The body decoder currently requires one contiguous visible object segment.
   Tier 2 dropouts need explicit handling; do not silently omit scored frames.

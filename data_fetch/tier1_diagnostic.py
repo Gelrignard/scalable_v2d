@@ -13,7 +13,7 @@ from scipy.spatial.transform import Rotation
 import trimesh
 
 from correction.src.dynamics.object_wrench import object_wrench
-from fetch_sample import sha256
+from data_fetch.fetch_sample import sha256
 from correction.src.dynamics.models import RigidBody
 
 

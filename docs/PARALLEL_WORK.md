@@ -14,7 +14,8 @@ These are implementation assignments; neither pipeline is already implemented.
 After the correction-layout refactor, merge the updated `origin/main` into each
 workstream branch before changing correction imports. The new public commands
 are `python -m correction.scripts.<command>`; reusable stages live under
-`correction.src`. Dataset readers are at the repository root. See
+`correction.src`. Dataset utilities live in `data_fetch/`, and SOMA setup/decoding
+lives in `soma_tools/`. See
 [the architecture and migration map](correction/ARCHITECTURE.md).
 
 Do not switch branches in another agent's active working directory. From a clone,

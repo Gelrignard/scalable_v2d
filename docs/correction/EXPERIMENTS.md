@@ -49,7 +49,7 @@ No cloud compute or GPU training is used.
 ## Real Tier 1 robot comparison
 
 The integration uses the actual 900 visible frames of episode 11. The final
-invisible frame is excluded. `decode_tier1.py` applies the official SOMA model,
+invisible frame is excluded. `soma_tools/decode_tier1.py` applies the official SOMA model,
 including time-varying flexible bone parameters, then the documented constant
 CV/SOMA/G1 coordinate transforms and supplied ground-plane leveling. Object poses
 remain prescribed. `.soma-env` is separate from the working Pinocchio environment.
@@ -73,7 +73,7 @@ direction, closed-loop stability, or full-robot dynamic feasibility.
 
 ```powershell
 # Existing CPU SOMA environment: torch 2.8.0+cpu, py-soma-x 0.2.1, pyarrow, scipy.
-.\.soma-env\Scripts\python.exe -m decode_tier1
+.\.soma-env\Scripts\python.exe -m soma_tools.decode_tier1
 .\retarget.ps1 run --input correction/outputs/tier1_book/human_motion.npz --method contact_aware --output correction/outputs/tier1_book/retargeted
 .\.tools\Library\bin\micromamba.exe run -p ./.retarget-env python -m correction.scripts.book_trial
 .\.tools\Library\bin\micromamba.exe run -p ./.retarget-env python -m correction.scripts.repair_robot

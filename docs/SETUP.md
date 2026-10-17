@@ -10,7 +10,7 @@ With Git and Python 3.11+ available:
 
 ~~~text
 python scripts/bootstrap_upstream.py
-python scripts/fetch_preview_assets.py
+python -m data_fetch.fetch_preview_assets
 ~~~
 
 The bootstrap fetches the revision in upstream.lock.json into ignored upstream/
@@ -22,6 +22,11 @@ The patch enables CPU NumPy readers, avoids unnecessary Torch imports, and
 limits the historical viewer to loopback. It does not change baseline IK costs.
 The separate training/evaluation revision in the lock file is intentionally
 different; do not replace the CPU dependency with it.
+
+Here, **upstream** means NVIDIA's original source project, which we use as a
+dependency. A **patch** is a text file listing edits relative to that source
+version. The bootstrap combines the pinned source with our compatibility patch
+so another checkout can reproduce the same local dependency.
 
 ## 2. CPU retargeting environment
 
@@ -62,9 +67,14 @@ contact-aware reference. Both variants are also selected by default.
 
 The current fetch/decode commands are deliberately Tier 1 specific:
 
+Download utilities are grouped in `data_fetch/`. SOMA model download, decoding,
+and dependency requirements are grouped in `soma_tools/`; the latter name avoids
+shadowing the installed `soma` library. Existing environment and cache paths are
+preserved, including `.soma-env` and `correction/data/soma_assets`.
+
 ~~~text
-python -m fetch_sample --episode 11
-python -m fetch_soma_assets
+python -m data_fetch.fetch_sample --episode 11
+python -m soma_tools.fetch_assets
 python -m venv .soma-env
 ~~~
 
@@ -72,8 +82,8 @@ Use .soma-env/Scripts/python.exe on Windows or .soma-env/bin/python on Linux:
 
 ~~~text
 <soma-python> -m pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
-<soma-python> -m pip install -r requirements-soma.txt
-<soma-python> -m decode_tier1
+<soma-python> -m pip install -r soma_tools/requirements.txt
+<soma-python> -m soma_tools.decode_tier1
 micromamba run -p ./.retarget-env python retargeting/scripts/run.py --input correction/outputs/tier1_book/human_motion.npz --method contact_aware --output correction/outputs/tier1_book/retargeted
 micromamba run -p ./.retarget-env python -m correction.scripts.book_pipeline
 ~~~

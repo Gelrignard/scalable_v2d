@@ -28,21 +28,26 @@ Kinematic playback is not physical simulation. The current corrected book refere
 ## Repository layout
 
 ```text
+data_fetch/        Dataset downloads, selected robot/example assets, and diagnostics
+soma_tools/        SOMA model downloads, human-motion decoding, and requirements
 retargeting/       Human-motion adapters, robot IK, export, viewer, and tests
 correction/        Stage implementations in src/, runnable scripts/, and tests/
 training/          Tier 2 policy-training implementation assignment
 reconstruction/    Tier 3 reconstruction implementation assignment
 experiments/       Experiment definitions and proposed episode roster
 docs/              Method, interfaces, experiment notes, setup, and third-party notices
-scripts/           Dependency bootstrap and selected asset downloads
+scripts/           NVIDIA dependency bootstrap and legacy preview launcher
 patches/           Reproducible changes to the pinned NVIDIA CPU dependency
 upstream.lock.json Source revisions, compatibility-patch hash, and asset provenance
 ```
 
-Direct dataset/model utilities live at the repository root: `fetch_sample.py`,
-`fetch_soma_assets.py`, `decode_tier1.py`, and `tier1_diagnostic.py`.
-The correction layout and updated commands are described in
-[correction/README.md](correction/README.md).
+See [data fetching](data_fetch/README.md), [SOMA setup](soma_tools/README.md), and
+[correction](correction/README.md) for their commands and file responsibilities.
+
+The ignored `upstream/` folder is a downloaded copy of NVIDIA's original project.
+`patches/` records our small compatibility edits to that source as text diffs.
+The setup script recreates the pinned NVIDIA version and applies those edits;
+our research code lives in the modules listed above.
 
 Datasets, model weights, Python environments, checkpoints, generated outputs, and the NVIDIA checkout are excluded from Git. Follow [SETUP.md](docs/SETUP.md) to obtain dependencies and generate local artifacts. Existing Windows users can continue using `retarget.ps1`; portable Python commands are documented in setup.
 

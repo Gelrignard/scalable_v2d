@@ -51,8 +51,8 @@ phase preparation and optimization have their own commands; use `--help` and
 see the [input/output contract](../docs/correction/INTEGRATION.md).
 
 Windows convenience launcher: `./correction/scripts/run.ps1 -Mode book`.
-Direct dataset utilities are at the repository root: `fetch_sample.py`,
-`fetch_soma_assets.py`, `decode_tier1.py`, and `tier1_diagnostic.py`.
+Dataset downloads and diagnostics live in [data_fetch/](../data_fetch/README.md).
+SOMA model downloads and decoding live in [soma_tools/](../soma_tools/README.md).
 
 ## Output and scope
 

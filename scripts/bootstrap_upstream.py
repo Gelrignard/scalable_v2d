@@ -1,7 +1,7 @@
 """Prepare the pinned CPU dependency without replacing an existing checkout.
 
 Uses only Python's standard library and Git. Downloads source, not LFS assets.
-Run fetch_preview_assets.py afterward for the selected robot/example assets.
+Run python -m data_fetch.fetch_preview_assets afterward for the selected robot/example assets.
 """
 from __future__ import annotations
 
