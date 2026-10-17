@@ -2,7 +2,7 @@
 from pathlib import Path
 import json
 import urllib.request
-from .fetch_sample import sha256
+from fetch_sample import sha256
 
 REVISION = "466879a83d57eabf3d875ded2d869f2075f90348"
 FILES = ["SOMA_neutral.npz", "correctives_model.pt", "MHR/mhr_model_lod1.pt",

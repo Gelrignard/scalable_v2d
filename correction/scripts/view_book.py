@@ -7,7 +7,7 @@ import numpy as np
 import trimesh
 import viser
 from scipy.spatial.transform import Rotation
-from .retarget_bridge import WORKSPACE
+from correction.src.preprocessing.retarget_bridge import WORKSPACE
 from v2d_retarget.core.robot import G1Kinematics
 from v2d_retarget.output import load_result
 from robotic_grounding.retarget.pinocchio_viser_visualizer import ViserVisualizer
@@ -119,5 +119,16 @@ def serve(directory,port=8082):
         time.sleep(1/30)
 
 
-if __name__=='__main__':
-    serve(WORKSPACE/'correction/outputs/tier1_book')
+def main():
+    import argparse
+    from correction.src.paths import BOOK_OUTPUT
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--directory', type=Path, default=BOOK_OUTPUT)
+    parser.add_argument('--port', type=int, default=8082)
+    args = parser.parse_args()
+    serve(args.directory, args.port)
+
+
+if __name__ == '__main__':
+    main()

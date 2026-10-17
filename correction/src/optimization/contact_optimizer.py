@@ -13,7 +13,7 @@ import numpy as np
 from qpsolvers import solve_qp
 from scipy.optimize import minimize
 
-from .models import ContactPatch, finite_array
+from correction.src.dynamics.models import ContactPatch, finite_array
 
 
 def skew(vector):

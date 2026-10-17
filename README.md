@@ -6,9 +6,9 @@ The research question is whether this preprocessing reduces the GPU time and env
 
 ## Start here
 
-- [Method and mathematical derivation](correction/METHOD.md)
+- [Method and mathematical derivation](docs/correction/METHOD.md)
 - [CPU setup and reproduction](docs/SETUP.md)
-- [Compute, challenge requirements, and implementation handoff](correction/COMPUTE_AND_IMPLEMENTATION_HANDOFF.md)
+- [Compute, challenge requirements, and implementation handoff](docs/COMPUTE_AND_IMPLEMENTATION_HANDOFF.md)
 - [Parallel branches and agent ownership](docs/PARALLEL_WORK.md)
 - [Tier 2 RL experiment plan](training/README.md) and [five-episode manifest](experiments/tier2_pilot.json)
 - [Tier 3 reconstruction plan](reconstruction/README.md)
@@ -29,18 +29,23 @@ Kinematic playback is not physical simulation. The current corrected book refere
 
 ```text
 retargeting/       Human-motion adapters, robot IK, export, viewer, and tests
-correction/        Dynamics, optimization, book experiment, method, and tests
+correction/        Stage implementations in src/, runnable scripts/, and tests/
 training/          Tier 2 policy-training implementation assignment
 reconstruction/    Tier 3 reconstruction implementation assignment
 experiments/       Experiment definitions and proposed episode roster
-docs/              Setup and parallel development instructions
+docs/              Method, interfaces, experiment notes, setup, and third-party notices
 scripts/           Dependency bootstrap and selected asset downloads
 patches/           Reproducible changes to the pinned NVIDIA CPU dependency
 upstream.lock.json Source revisions, compatibility-patch hash, and asset provenance
 ```
 
+Direct dataset/model utilities live at the repository root: `fetch_sample.py`,
+`fetch_soma_assets.py`, `decode_tier1.py`, and `tier1_diagnostic.py`.
+The correction layout and updated commands are described in
+[correction/README.md](correction/README.md).
+
 Datasets, model weights, Python environments, checkpoints, generated outputs, and the NVIDIA checkout are excluded from Git. Follow [SETUP.md](docs/SETUP.md) to obtain dependencies and generate local artifacts. Existing Windows users can continue using `retarget.ps1`; portable Python commands are documented in setup.
 
 The two development branches are `work/tier2-rl` and `work/tier3-reconstruction`. Use a separate worktree for each agent. Keep the same downstream learner and compute budget across the NVIDIA body baseline, our retargeting, and our retargeting plus correction.
 
-See [third-party notices](THIRD_PARTY_NOTICES.md) before redistributing upstream source or assets.
+See [third-party notices](docs/THIRD_PARTY_NOTICES.md) before redistributing upstream source or assets.

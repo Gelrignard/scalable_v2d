@@ -8,9 +8,9 @@ import unittest
 
 import numpy as np
 
-from correction.demo import pinch_case
-from correction.optimizer import CorrectionSettings, PhaseCorrector, validate_dense
-from correction.prepare_phase import prepare
+from correction.scripts.demo import pinch_case
+from correction.src.optimization.contact_optimizer import CorrectionSettings, PhaseCorrector, validate_dense
+from correction.src.preprocessing.reference import prepare
 
 
 class IntegrationTests(unittest.TestCase):
@@ -47,7 +47,7 @@ class IntegrationTests(unittest.TestCase):
             (root / "config.json").write_text(json.dumps(config, default=lambda value: value.tolist()))
             report = prepare(root / "reference.npz", root / "config.json", root / "phase.npz", 6, 115)
             self.assertEqual(report["dense_frames"], 109)
-            process = subprocess.run([sys.executable, "-m", "correction.run_phase", "--phase", str(root/"phase.npz"),
+            process = subprocess.run([sys.executable, "-m", "correction.scripts.run_phase", "--phase", str(root/"phase.npz"),
                                       "--config", str(root/"config.json"), "--output", str(root/"out")],
                                      capture_output=True, text=True, timeout=30)
             self.assertEqual(process.returncode, 0, process.stderr)

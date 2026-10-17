@@ -16,7 +16,7 @@ from scipy.spatial.transform import Rotation
 import torch
 from soma import SOMALayer
 
-from .dynamics import contiguous_runs
+from correction.src.dynamics.object_wrench import contiguous_runs
 
 
 def level_rotation(normal):

@@ -2,7 +2,7 @@
 
 **Checked: 17 October 2026. Scope: Track 2 robotic grounding, outside our retargeting and contact-wrench correction.**
 
-Read this together with [METHOD.md](METHOD.md). That file explains the research method; this file specifies the surrounding reconstruction, training, evaluation, and submission work.
+Read this together with [METHOD.md](correction/METHOD.md). That file explains the research method; this file specifies the surrounding reconstruction, training, evaluation, and submission work.
 
 No server has been rented, no GPU job launched, and no reconstruction or RL runtime measured for this handoff. Numbers explicitly labeled “scenario” or “allocation” are planning assumptions, not benchmark results.
 
@@ -197,9 +197,9 @@ The first rental allocation should be only **2–4 hours of prepared profiling**
 
 The available book artifacts are:
 
-- [Original reference](outputs/tier1_book/retargeted/contact_aware.npz)
-- [Corrected reference](outputs/tier1_book/dynamics_guided.npz)
-- [Physical-assumption and FK audit](outputs/tier1_book/fk_force_audit.json)
+- [Original reference](../correction/outputs/tier1_book/retargeted/contact_aware.npz)
+- [Corrected reference](../correction/outputs/tier1_book/dynamics_guided.npz)
+- [Physical-assumption and FK audit](../correction/outputs/tier1_book/fk_force_audit.json)
 
 Both references contain q [900,50], timestamps [900], object_positions [900,3], object_wxyz [900,4], contact fields, and metadata_json. They are **our reference format**, not directly the FlashCHORD motion format, a policy, or an evaluator trajectory.
 

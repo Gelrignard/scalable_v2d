@@ -52,18 +52,19 @@ Provide `patches`, one per point, with these fields:
 - `friction`: assumed Coulomb coefficient.
 - `max_normal_force_n`: explicit cap, to be checked against robot actuation later.
 
-Optional `settings` keys are documented by `CorrectionSettings` in `optimizer.py`.
-`outputs/controlled_pinch/input_config.json` is a working patch/settings example;
+Optional `settings` keys are documented by `CorrectionSettings` in
+[contact_optimizer.py](../../correction/src/optimization/contact_optimizer.py).
+`correction/outputs/controlled_pinch/input_config.json` is a working patch/settings example;
 add the body/world fields above for the geometric reference adapter. Its physics
 and patches are synthetic, not appropriate parameters for the challenge book.
 
 ## Prepare and solve a phase
 
-Run these modules with the CPU environment used by `correction/run.ps1`:
+Run these modules with the CPU environment used by `correction/scripts/run.ps1`:
 
 ```text
-python -m correction.prepare_phase --reference reference.npz --config config.json --output phase.npz --start-frame 100 --stop-frame 160 --stride 3
-python -m correction.run_phase --phase phase.npz --config config.json --output correction/outputs/my_phase
+python -m correction.scripts.prepare_phase --reference reference.npz --config config.json --output phase.npz --start-frame 100 --stop-frame 160 --stride 3
+python -m correction.scripts.run_phase --phase phase.npz --config config.json --output correction/outputs/my_phase
 ```
 
 The selected frame interval is start-inclusive and stop-exclusive. Select one

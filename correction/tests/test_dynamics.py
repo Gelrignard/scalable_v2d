@@ -3,8 +3,8 @@ import unittest
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from correction.dynamics import object_wrench, world_points_to_object
-from correction.models import RigidBody
+from correction.src.dynamics.object_wrench import object_wrench, world_points_to_object
+from correction.src.dynamics.models import RigidBody
 
 
 class DynamicsTests(unittest.TestCase):

@@ -8,20 +8,9 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from .models import ContactPatch
-from .optimizer import CorrectionSettings, PhaseCorrector, validate_dense
-
-
-def save_result(result, output: Path, provenance, extra_arrays=None):
-    output.mkdir(parents=True, exist_ok=True)
-    arrays = {name: result[name] for name in ("timestamp_s", "required_wrench_object", "environment_wrench_object", "reference_points_object_m")}
-    for stage in ("before", "after"):
-        arrays.update({f"{stage}_{name}": value for name, value in result[stage].items() if name != "metrics"})
-    arrays.update(extra_arrays or {})
-    np.savez_compressed(output / "correction.npz", **arrays)
-    report = {**result["report"], "provenance": provenance}
-    (output / "report.json").write_text(json.dumps(report, indent=2, allow_nan=False) + "\n")
-    return report
+from correction.src.dynamics.models import ContactPatch
+from correction.src.optimization.contact_optimizer import CorrectionSettings, PhaseCorrector, validate_dense
+from correction.src.pass_traj.phase_result import save_result
 
 
 def main():

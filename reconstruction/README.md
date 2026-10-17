@@ -2,7 +2,7 @@
 
 Branch: work/tier3-reconstruction. This is an implementation handoff scaffold.
 
-Read correction/METHOD.md, correction/COMPUTE_AND_IMPLEMENTATION_HANDOFF.md,
+Read docs/correction/METHOD.md, docs/COMPUTE_AND_IMPLEMENTATION_HANDOFF.md,
 docs/SETUP.md, and the canonical HumanMotion contract in retargeting/README.md.
 
 ## Deliverables

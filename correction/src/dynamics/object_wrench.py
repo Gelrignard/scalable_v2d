@@ -5,7 +5,7 @@ from scipy.interpolate import CubicSpline
 from scipy.signal import savgol_filter
 from scipy.spatial.transform import Rotation, RotationSpline
 
-from .models import RigidBody
+from correction.src.dynamics.models import RigidBody
 
 
 def contiguous_runs(mask):

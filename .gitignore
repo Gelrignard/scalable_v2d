@@ -25,8 +25,8 @@ node_modules/
 .ruff_cache/
 /preview-installed-packages.txt
 /scripts/check_preview.cjs
-/correction/check_viewer.cjs
-/correction/capture_book.cjs
+/correction/scripts/check_viewer.cjs
+/correction/scripts/capture_book.cjs
 __pycache__/
 *.py[cod]
 *.egg-info/

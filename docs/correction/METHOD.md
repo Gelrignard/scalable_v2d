@@ -2,7 +2,7 @@
 
 **Method note and implementation audit — 12 October 2026**
 
-**Operational update, 17 October:** see [COMPUTE_AND_IMPLEMENTATION_HANDOFF.md](COMPUTE_AND_IMPLEMENTATION_HANDOFF.md) for the quoted 4090 server budget, reconstruction requirements, current submission-kit contract, and work packages for the next implementation agent. The method results below remain the 12 October trial.
+**Operational update, 17 October:** see [COMPUTE_AND_IMPLEMENTATION_HANDOFF.md](../COMPUTE_AND_IMPLEMENTATION_HANDOFF.md) for the quoted 4090 server budget, reconstruction requirements, current submission-kit contract, and work packages for the next implementation agent. The method results below remain the 12 October trial.
 
 **Research question.** Can a small, CPU-based mechanics optimization repair the contact inconsistencies in a retargeted human demonstration sufficiently to reduce the total compute needed to learn a successful robot policy?
 
@@ -489,7 +489,7 @@ The recorded output explicitly sets **accepted_as_feasible_manipulation = false*
 
 Measured CPU times were approximately 36 s for body decoding, 117 s for full retargeting, 6.25 s for phase contact optimization, and 12.16 s for the local repair routine through projection. The latter excludes subsequent final geometry evaluation and the separate force audit. These are individual-stage measurements, not a complete end-to-end benchmark or development-cost estimate.
 
-The underlying records are [wrench_plan.json](outputs/tier1_book/wrench_plan.json), [robot_repair_metrics.json](outputs/tier1_book/robot_repair_metrics.json), and [fk_force_audit.json](outputs/tier1_book/fk_force_audit.json).
+The underlying records are [wrench_plan.json](../../correction/outputs/tier1_book/wrench_plan.json), [robot_repair_metrics.json](../../correction/outputs/tier1_book/robot_repair_metrics.json), and [fk_force_audit.json](../../correction/outputs/tier1_book/fk_force_audit.json).
 
 **What we can claim now:** CPU preprocessing can substantially improve the attained contact geometry of this reference.
 
@@ -657,14 +657,15 @@ The first milestone is to repair the remaining sticking inconsistency and test t
 
 | Component | File |
 |---|---|
-| Official SOMA-X decoding and coordinate conversion | [decode_tier1.py](decode_tier1.py) |
-| Object inverse dynamics and smoothing | [dynamics.py](dynamics.py) |
-| Rigid-body and contact-patch definitions | [models.py](models.py) |
-| Inner force QP and outer contact optimization | [optimizer.py](optimizer.py) |
-| Real-book phase, patches, and assumptions | [book_trial.py](book_trial.py) |
-| Local robot trajectory correction | [robot_repair.py](robot_repair.py) |
-| Force reallocation at attained FK geometry | [audit_book.py](audit_book.py) |
-| Commands and output description | [README.md](README.md) |
+| Official SOMA-X decoding and coordinate conversion | [decode_tier1.py](../../decode_tier1.py) |
+| Object inverse dynamics and smoothing | [object_wrench.py](../../correction/src/dynamics/object_wrench.py) |
+| Rigid-body and contact-patch definitions | [models.py](../../correction/src/dynamics/models.py) |
+| Inner force QP and outer contact optimization | [contact_optimizer.py](../../correction/src/optimization/contact_optimizer.py) |
+| Real-book phase, patches, and assumptions | [book_wrench.py](../../correction/src/optimization/book_wrench.py) |
+| Local robot trajectory correction | [robot_trajectory.py](../../correction/src/optimization/robot_trajectory.py) |
+| Force reallocation at attained FK geometry | [contact_audit.py](../../correction/src/dynamics/contact_audit.py) |
+| Corrected robot-reference output | [robot_reference.py](../../correction/src/pass_traj/robot_reference.py) |
+| Commands and output description | [README.md](../../correction/README.md) |
 
 The implementation uses NumPy/SciPy, DAQP/qpsolvers, and the existing Pinocchio/Pink robot tooling. Human decoding uses the official py-soma-x 0.2.1 package with CPU Torch in a separate environment. No neural-network training is part of the correction.
 

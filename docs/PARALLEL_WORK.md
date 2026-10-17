@@ -7,9 +7,15 @@ The baseline source lives on main. Use separate checkouts/worktrees and branches
 | work/tier2-rl | Five-episode Tier 2 trainer, adapters, profiling, evaluation | training/, experiments/ |
 | work/tier3-reconstruction | Video-to-human/object motion and canonical input adapter | reconstruction/ |
 
-Each agent should read correction/METHOD.md,
-correction/COMPUTE_AND_IMPLEMENTATION_HANDOFF.md, and its workstream README.
+Each agent should read docs/correction/METHOD.md,
+docs/COMPUTE_AND_IMPLEMENTATION_HANDOFF.md, and its workstream README.
 These are implementation assignments; neither pipeline is already implemented.
+
+After the correction-layout refactor, merge the updated `origin/main` into each
+workstream branch before changing correction imports. The new public commands
+are `python -m correction.scripts.<command>`; reusable stages live under
+`correction.src`. Dataset readers are at the repository root. See
+[the architecture and migration map](correction/ARCHITECTURE.md).
 
 Do not switch branches in another agent's active working directory. From a clone,
 create separate worktrees if they do not already exist:

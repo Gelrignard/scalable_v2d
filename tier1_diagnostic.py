@@ -12,9 +12,9 @@ import pyarrow.parquet as pq
 from scipy.spatial.transform import Rotation
 import trimesh
 
-from .dynamics import object_wrench
-from .fetch_sample import sha256
-from .models import RigidBody
+from correction.src.dynamics.object_wrench import object_wrench
+from fetch_sample import sha256
+from correction.src.dynamics.models import RigidBody
 
 
 def verify_cache(root):

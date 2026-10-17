@@ -4,27 +4,37 @@ Only arm and hand joints can change. Base, legs, waist, object and timing remain
 identical. This is a kinematic projection, not inverse dynamics or a rollout.
 """
 from __future__ import annotations
-import argparse
 from copy import deepcopy
-import json
-from pathlib import Path
+from dataclasses import dataclass
 from time import perf_counter
 import numpy as np
 from scipy.spatial.transform import Rotation
-from .retarget_bridge import WORKSPACE
+from correction.src.preprocessing.book_reference import load_book_reference
 import pinocchio as pin
 import pink
 from pink.limits import Limit, ConfigurationLimit
 from pink.tasks import Task, PostureTask
-from v2d_retarget.dataprocessing import load_npz
+from v2d_retarget.dataprocessing import HumanMotion
 from v2d_retarget.core.robot import G1Kinematics
-from v2d_retarget.core.surface import ObjectSurface
-from v2d_retarget.core.targets import build_body_targets
-from v2d_retarget.core.contacts import build_contacts, TIP_NAMES
+from v2d_retarget.core.targets import BodyTargets, build_body_targets
+from v2d_retarget.core.contacts import ContactTargets, TIP_NAMES
 from v2d_retarget.core.constraints import HullAvoidanceTask, OutputVelocityLimit
 from v2d_retarget.core.solver import SolveResult
 from v2d_retarget.core.diagnostics import evaluate
-from v2d_retarget.output import load_result, save_result
+
+
+@dataclass
+class RobotCorrectionResult:
+    """A refined reference and diagnostics; serialization is a separate stage."""
+
+    motion: HumanMotion
+    robot: G1Kinematics
+    solution: SolveResult
+    body_targets: BodyTargets
+    contacts: ContactTargets
+    config: dict
+    metrics: dict
+    diagnostics: dict
 
 
 class ReferenceNeighborhood(Limit):
@@ -65,19 +75,13 @@ class PatchTrackingTask(Task):
 
 def repair(directory):
     started=perf_counter()
-    motion=load_npz(directory/'human_motion.npz')
-    before,metadata=load_result(directory/'retargeted/contact_aware.npz')
-    # Preserve the exact saved arrays, including quaternion round-off, so
-    # comparisons cannot attribute object-motion changes to this correction.
-    motion.object_positions=before['object_positions'].copy()
-    motion.object_wxyz=before['object_wxyz'].copy()
-    plan=np.load(directory/'wrench_plan.npz')
+    motion, before, _, cfg, surface, contacts = load_book_reference(
+        directory, preserve_saved_object_pose=True)
+    with np.load(directory/'wrench_plan.npz', allow_pickle=False) as saved_plan:
+        plan = {key: saved_plan[key].copy() for key in saved_plan.files}
     ids=plan['ids']
-    cfg=json.loads((WORKSPACE/'retargeting/configs/contact_aware.json').read_text())
     kin=G1Kinematics()
     body=build_body_targets(motion,kin.config)
-    surface=ObjectSurface(motion.object_mesh)
-    contacts=build_contacts(motion,surface,cfg)
     corrected=deepcopy(contacts)
     rotations=Rotation.from_quat(motion.object_wxyz,scalar_first=True).as_matrix()
     # Keep the demonstrated grasp neighborhood. Proxy contacts are projected
@@ -192,12 +196,4 @@ def repair(directory):
         'arm_trust_radius_rad':.9,'finger_trust_radius_rad':1.5,'transition_padding_frames':pad}
     metrics['scope']='Local arm/hand kinematic projection using object-wrench load weights; no robot dynamics or physical rollout'
     metrics['modified_frame_range']=[start,end]
-    save_result(directory,'dynamics_guided',motion,kin,solved,body,corrected,cfg,metrics,arrays)
-    (directory/'robot_repair_metrics.json').write_text(json.dumps(metrics,indent=2))
-    print(json.dumps({k:v for k,v in metrics.items() if k.startswith('phase_') or k in ('elapsed_seconds','max_joint_change_rad','speed_violating_transitions')},indent=2),flush=True)
-
-
-if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--directory',type=Path,default=Path('correction/outputs/tier1_book'))
-    repair(p.parse_args().directory)
+    return RobotCorrectionResult(motion, kin, solved, body, corrected, cfg, metrics, arrays)

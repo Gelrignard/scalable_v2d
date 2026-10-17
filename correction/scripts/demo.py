@@ -8,9 +8,9 @@ from pathlib import Path
 
 import numpy as np
 
-from .models import ContactPatch
-from .optimizer import CorrectionSettings, PhaseCorrector
-from .run_phase import save_result
+from correction.src.dynamics.models import ContactPatch
+from correction.src.optimization.contact_optimizer import CorrectionSettings, PhaseCorrector
+from correction.src.pass_traj.phase_result import save_result
 
 
 def pinch_case(force_cap=20., samples=16):

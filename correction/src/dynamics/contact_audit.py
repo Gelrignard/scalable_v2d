@@ -5,9 +5,9 @@ import re
 import numpy as np
 from qpsolvers import solve_qp
 from scipy.spatial.transform import Rotation
-from .retarget_bridge import WORKSPACE
-from .dynamics import world_points_to_object
-from .optimizer import skew
+from correction.src.preprocessing.retarget_bridge import WORKSPACE
+from correction.src.dynamics.object_wrench import world_points_to_object
+from correction.src.optimization.contact_optimizer import skew
 from v2d_retarget.core.surface import ObjectSurface
 from v2d_retarget.output import load_result
 
@@ -85,7 +85,3 @@ def audit(directory):
     (directory/'fk_force_audit.json').write_text(json.dumps(results,indent=2))
     np.savez_compressed(directory/'fk_force_audit.npz',times=times,**saved)
     print(json.dumps(results,indent=2))
-
-
-if __name__=='__main__':
-    audit(WORKSPACE/'correction/outputs/tier1_book')

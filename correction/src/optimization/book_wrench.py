@@ -4,29 +4,19 @@ The thin book is approximated by its two broad planar faces for planning.
 All quantities are subsequently checked against the actual object mesh and FK.
 """
 from __future__ import annotations
-import argparse
 from dataclasses import asdict
-import json
-from pathlib import Path
 from time import perf_counter
 import numpy as np
-from scipy.spatial.transform import Rotation
-from .retarget_bridge import WORKSPACE
-from .dynamics import object_wrench, world_points_to_object
-from .models import RigidBody, ContactPatch
-from .optimizer import CorrectionSettings, PhaseCorrector
-from v2d_retarget.dataprocessing import load_npz
-from v2d_retarget.core.surface import ObjectSurface
-from v2d_retarget.core.contacts import build_contacts, TIP_NAMES
-from v2d_retarget.output import load_result
+from correction.src.preprocessing.book_reference import load_book_reference
+from correction.src.dynamics.object_wrench import object_wrench, world_points_to_object
+from correction.src.dynamics.models import RigidBody, ContactPatch
+from correction.src.optimization.contact_optimizer import CorrectionSettings, PhaseCorrector
+from v2d_retarget.core.contacts import TIP_NAMES
 
 
 def plan(directory, start, stop):
     started = perf_counter()
-    motion = load_npz(directory / 'human_motion.npz')
-    cfg = json.loads((WORKSPACE / 'retargeting/configs/contact_aware.json').read_text())
-    surface = ObjectSurface(motion.object_mesh)
-    contacts = build_contacts(motion, surface, cfg)
+    motion, robot, _, cfg, surface, contacts = load_book_reference(directory)
     ids = np.arange(start, stop)
     if not contacts.active[ids].all():
         raise ValueError('Select a phase in which all six inferred contacts are active')
@@ -57,7 +47,6 @@ def plan(directory, start, stop):
     # A human hand and Dex3 cannot place all three tips in identical local
     # configurations. Use saved robot FK as a second, soft geometric reference;
     # the original human anchors still define every hard +/-3 cm trust region.
-    robot,_=load_result(directory/'retargeted/contact_aware.npz')
     local_fk=world_points_to_object(pose[ids],robot['fk_tip_positions'][ids])
     robot_uv=np.array([patch.tangents.T@(point-patch.center_object_m)
         for patch,point in zip(patches,np.median(local_fk,axis=0))])
@@ -80,20 +69,10 @@ def plan(directory, start, stop):
         mesh_projection_distance_m=distances.tolist(),
         optimized_points_on_mesh_object_m=actual.tolist(),
         total_preparation_and_planning_seconds=perf_counter()-started)
-    np.savez_compressed(directory/'wrench_plan.npz',ids=ids,times=motion.timestamps[ids],
+    arrays = dict(ids=ids,times=motion.timestamps[ids],
         before_points=before,after_points=after,mesh_points=actual,mesh_normals=normals,
         before_forces=result['before']['contact_forces_object_n'],after_forces=result['after']['contact_forces_object_n'],
         before_residual=result['before']['wrench_residual_object'],after_residual=result['after']['wrench_residual_object'],
         required_wrench=dynamics['required_wrench_object'][ids],com=com,
-        inertia=inertia,mass=mass,report_json=json.dumps(report))
-    (directory/'wrench_plan.json').write_text(json.dumps(report,indent=2))
-    print(json.dumps(report,indent=2),flush=True)
-
-
-if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--directory',type=Path,default=Path('correction/outputs/tier1_book'))
-    p.add_argument('--start',type=int,default=135)
-    p.add_argument('--stop',type=int,default=176)
-    a=p.parse_args()
-    plan(a.directory,a.start,a.stop)
+        inertia=inertia,mass=mass)
+    return arrays, report

@@ -44,7 +44,7 @@ it is not a Linux lock file.
 Tests requiring generated local audit artifacts explicitly skip on a fresh
 clone. No generated artifacts or model weights are committed.
 
-The optional scientific plot command, `python -m correction.plot_book`, also
+The optional scientific plot command, `python -m correction.scripts.plot_book`, also
 requires Matplotlib (`python -m pip install "matplotlib>=3.8,<4"`). It is not
 needed by the optimizer, viewer, or tests.
 
@@ -52,7 +52,7 @@ needed by the optimizer, viewer, or tests.
 
 ~~~text
 micromamba run -p ./.retarget-env python retargeting/scripts/run.py --method both
-micromamba run -p ./.retarget-env python -m correction.demo
+micromamba run -p ./.retarget-env python -m correction.scripts.demo
 ~~~
 
 The retargeting CLI compares the pinned NVIDIA body baseline with our
@@ -63,8 +63,8 @@ contact-aware reference. Both variants are also selected by default.
 The current fetch/decode commands are deliberately Tier 1 specific:
 
 ~~~text
-python -m correction.fetch_sample --episode 11
-python -m correction.fetch_soma_assets
+python -m fetch_sample --episode 11
+python -m fetch_soma_assets
 python -m venv .soma-env
 ~~~
 
@@ -73,9 +73,9 @@ Use .soma-env/Scripts/python.exe on Windows or .soma-env/bin/python on Linux:
 ~~~text
 <soma-python> -m pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
 <soma-python> -m pip install -r requirements-soma.txt
-<soma-python> -m correction.decode_tier1
+<soma-python> -m decode_tier1
 micromamba run -p ./.retarget-env python retargeting/scripts/run.py --input correction/outputs/tier1_book/human_motion.npz --method contact_aware --output correction/outputs/tier1_book/retargeted
-micromamba run -p ./.retarget-env python -m correction.book_pipeline
+micromamba run -p ./.retarget-env python -m correction.scripts.book_pipeline
 ~~~
 
 The source dataset and model asset revisions are pinned. Review the upstream

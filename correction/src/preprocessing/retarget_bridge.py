@@ -2,7 +2,7 @@
 from pathlib import Path
 import sys
 
-WORKSPACE = Path(__file__).resolve().parents[1]
+from correction.src.paths import WORKSPACE
 sys.path.insert(0, str(WORKSPACE / "retargeting/src"))
 from v2d_retarget.paths import enable_upstream
 enable_upstream()
@@ -15,7 +15,7 @@ def inspect_motion(path):
     from v2d_retarget.dataprocessing import load_npz
     from v2d_retarget.core.contacts import build_contacts, TIP_NAMES
     from v2d_retarget.core.surface import ObjectSurface
-    from .dynamics import contiguous_runs
+    from correction.src.dynamics.object_wrench import contiguous_runs
     motion = load_npz(path)
     cfg = json.loads((WORKSPACE / 'retargeting/configs/contact_aware.json').read_text())
     surface = ObjectSurface(motion.object_mesh)
@@ -30,7 +30,3 @@ def inspect_motion(path):
     target = Path(path).with_name('contact_inspection.json')
     target.write_text(json.dumps(report,indent=2))
     print(json.dumps(report,indent=2),flush=True)
-
-
-if __name__ == '__main__':
-    inspect_motion(sys.argv[1])

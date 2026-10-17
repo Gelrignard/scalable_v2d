@@ -21,13 +21,13 @@ experiments/tier2_pilot.json before implementation.
 
 ## Existing gaps that must not be hidden
 
-- correction/fetch_sample.py and decode_tier1.py hardcode Tier 1 provenance.
+- fetch_sample.py and decode_tier1.py hardcode Tier 1 provenance.
   Passing Tier 2 files without adapting this code is not an acceptable solution.
 - The body decoder currently requires one contiguous visible object segment.
   Tier 2 dropouts need explicit handling; do not silently omit scored frames.
 - Our canonical-input Parquet export needs scene metadata integration; the
   default cached example export does not establish arbitrary-episode support.
-- correction/book_pipeline.py selects a Tier 1 book phase by fixed frame indices.
+- correction/scripts/book_pipeline.py selects a Tier 1 book phase by fixed frame indices.
   It is not a general corrector for all five episodes.
 - Sticking, grasp/release, environmental support and full physical execution
   remain unresolved. Record unsupported phases/failures instead of claiming

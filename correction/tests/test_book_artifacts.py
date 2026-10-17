@@ -47,7 +47,7 @@ class BookArtifactsTests(unittest.TestCase):
 
     def test_patch_tracking_jacobian_matches_finite_difference(self):
         import pinocchio as pin
-        from correction.robot_repair import PatchTrackingTask
+        from correction.src.optimization.robot_trajectory import PatchTrackingTask
         from v2d_retarget.core.robot import G1Kinematics
         kin=G1Kinematics()
         q=self.before['q'][155].copy()

@@ -2,8 +2,8 @@ import unittest
 
 import numpy as np
 
-from correction.demo import pinch_case
-from correction.optimizer import CorrectionSettings, PhaseCorrector
+from correction.scripts.demo import pinch_case
+from correction.src.optimization.contact_optimizer import CorrectionSettings, PhaseCorrector
 
 
 class CorrectionTests(unittest.TestCase):

@@ -2,12 +2,13 @@
 from pathlib import Path
 import json
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 
 def plot(directory):
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
     arrays=np.load(directory/'fk_force_audit.npz')
     report=json.loads((directory/'fk_force_audit.json').read_text())
     t=arrays['times']
@@ -23,9 +24,18 @@ def plot(directory):
     axes[2].legend(frameon=False);axes[2].set_xlabel('Original episode time [s]')
     for ax in axes:
         ax.grid(alpha=.2);ax.spines[['top','right']].set_visible(False);ax.set_ylim(bottom=0)
-    fig.suptitle('Real Tier 1 book episode · local robot contact correction',fontsize=16)
-    fig.text(.5,-.025,'Prescribed object motion · Assumed 1 kg, μ = 0.6 · Instantaneous wrench test only; slip and penetration remain',ha='center',fontsize=10)
+    fig.suptitle('Real Tier 1 book episode Â· local robot contact correction',fontsize=16)
+    fig.text(.5,-.025,'Prescribed object motion Â· Assumed 1 kg, Î¼ = 0.6 Â· Instantaneous wrench test only; slip and penetration remain',ha='center',fontsize=10)
     fig.savefig(directory/'diagnostics.png',dpi=150,bbox_inches='tight')
 
 
-if __name__=='__main__': plot(Path(__file__).resolve().parent/'outputs/tier1_book')
+def main():
+    import argparse
+    from correction.src.paths import BOOK_OUTPUT
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--directory", type=Path, default=BOOK_OUTPUT)
+    plot(parser.parse_args().directory)
+
+
+if __name__ == "__main__":
+    main()
