@@ -4,9 +4,9 @@ NVIDIA Video to Data:
 https://github.com/nvidia-isaac/video_to_data
 
 The CPU prototype imports a separately downloaded pinned checkout. Its source
-is not vendored here. The compatibility patch in patches/windows_cpu_preview.patch
+is not vendored here. The [compatibility patch](windows_cpu_preview.patch)
 contains modifications to NVIDIA source under Apache License 2.0; the upstream
-license is retained in docs/licenses/NVIDIA-LICENSE.txt. That original file also
+license is retained in [NVIDIA-LICENSE.txt](licenses/NVIDIA-LICENSE.txt). That original file also
 contains the CC-BY-4.0 terms for upstream documentation/skills. Preserve the
 original copyright and license notices when redistributing patched source.
 

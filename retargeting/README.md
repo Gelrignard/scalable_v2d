@@ -5,14 +5,14 @@ includes the pinned NVIDIA SOMA-to-G1 body-only objectives as a baseline and a
 contact-aware variant with moving fingers, object-relative contact anchors,
 hand collision probes, and velocity bounds between saved configurations.
 
-## Run on Windows
+## Run
 
 From the workspace root, using the installed CPU environment:
 
-```powershell
-.\retarget.ps1 run --export-parquet
-.\retarget.ps1 view
-.\retarget.ps1 test
+```text
+python retargeting/scripts/run.py --export-parquet
+python retargeting/scripts/visualize_viser.py
+python -m unittest discover -s retargeting/tests -v
 ```
 
 The viewer is at http://127.0.0.1:8081. Select `baseline` or `contact_aware`,
@@ -20,15 +20,14 @@ scrub frames, and use **Focus on hands**. Cyan is the human, orange the targets,
 magenta the robot fingertips, and green inferred object contact anchors. Red
 lines show target-to-FK residuals. Object playback is prescribed, not simulated.
 
-The old `preview.ps1` / `scripts/local_preview.py` launchers delegate here.
 Historical `outputs/local_ik.npz` is a local regression artifact, excluded from
 Git. Its regression test skips when that artifact is absent.
 
 For a faster development comparison:
 
 ```powershell
-.\retarget.ps1 run --stride 4 --output retargeting/outputs/stride4
-.\retarget.ps1 view --results retargeting/outputs/stride4
+python retargeting/scripts/run.py --stride 4 --output retargeting/outputs/stride4
+python retargeting/scripts/visualize_viser.py --results retargeting/outputs/stride4
 ```
 
 `--stride` retains actual timestamps. `--fps 30` is an explicit timing override
@@ -52,9 +51,9 @@ tests/                          geometry, timing, export, baseline regressions
 outputs/                        ignored generated artifacts
 ```
 
-The workspace uses an ignored `upstream/` Git checkout. Follow the root
-[setup guide](../docs/SETUP.md) to create it at the pinned revision and apply
-the compatibility patch. The CPU setup uses Conda Pinocchio/Pink rather than
+The workspace uses an ignored `upstream/` Git checkout. Follow the
+[optional dependency guide](../docs/NVIDIA_COMPATIBILITY.md) to create it at the
+tested revision and apply the compatibility patch. The CPU setup uses Conda Pinocchio/Pink rather than
 the upstream Linux-oriented pip installation.
 
 ## Inputs
@@ -139,7 +138,7 @@ object trajectory, and does not treat inferred contacts as measured forces.
 Independent re-evaluation:
 
 ```powershell
-.\retarget.ps1 evaluate retargeting/outputs/snack_box/contact_aware.npz
+python retargeting/scripts/evaluate.py retargeting/outputs/snack_box/contact_aware.npz
 ```
 
 The Parquet is a reference for the supplied `SonicG1-ReconBody-v0` training/eval

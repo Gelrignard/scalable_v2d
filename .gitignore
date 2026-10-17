@@ -31,3 +31,8 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+
+# Machine-specific convenience launchers are local, not public entry points.
+/retarget.ps1
+/correction/scripts/run.ps1
+/preview.ps1

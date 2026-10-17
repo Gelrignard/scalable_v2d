@@ -3,6 +3,8 @@
 | Document | Purpose |
 |---|---|
 | [Setup](SETUP.md) | Reproduce the CPU environment and example |
+| [Optional NVIDIA dependency and patch](NVIDIA_COMPATIBILITY.md) | Tested source version, compatibility edits, and manual installation |
+| [SOMA setup](SOMA_SETUP.md) | Body-model assets, dependencies, and decoding commands |
 | [Correction architecture](correction/ARCHITECTURE.md) | Stage boundaries, file map, and command migration |
 | [Method](correction/METHOD.md) | Mathematical derivation and research claims |
 | [Retargeting interface](correction/INTEGRATION.md) | Geometric input bundle, units, frames, and output contract |

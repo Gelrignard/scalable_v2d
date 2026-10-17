@@ -19,8 +19,7 @@ correction/
 │   ├── inspect_reference.py
 │   ├── demo.py
 │   ├── view_book.py
-│   ├── plot_book.py
-│   └── run.ps1
+│   └── plot_book.py
 └── src/
     ├── preprocessing/      Read retargeting outputs and prepare phase inputs
     ├── dynamics/           Body/contact models, object wrench, and physical audit
@@ -50,9 +49,9 @@ The book pipeline expects the existing retargeted episode in
 phase preparation and optimization have their own commands; use `--help` and
 see the [input/output contract](../docs/correction/INTEGRATION.md).
 
-Windows convenience launcher: `./correction/scripts/run.ps1 -Mode book`.
-Dataset downloads and diagnostics live in [data_fetch/](../data_fetch/README.md).
-SOMA model downloads and decoding live in [soma_tools/](../soma_tools/README.md).
+Dataset downloads, diagnostics, and SOMA model decoding live together in
+[data_tools/](../data_tools/README.md). Use the Python entry points above;
+machine-specific convenience launchers are not part of the public repository.
 
 ## Output and scope
 

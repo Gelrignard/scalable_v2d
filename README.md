@@ -36,39 +36,34 @@ excluded by `.gitignore`.
   `correction/requirements.txt`, then run `python -m correction.scripts.demo` or
   the standalone mechanics/optimization tests in [SETUP.md](docs/SETUP.md).
 - **G1 retargeting and the book robot trial:** the current adapters require
-  NVIDIA's robot code and assets. Install them explicitly using
-  `python scripts/bootstrap_upstream.py`, then
-  `python -m data_fetch.fetch_preview_assets`.
+  NVIDIA's robot code and assets. Follow the documented
+  [optional dependency and compatibility patch setup](docs/NVIDIA_COMPATIBILITY.md),
+  then run `python -m data_tools.fetch_preview_assets`.
 
-`upstream.lock.json` contains only dependency versions, source URLs, and hashes.
-The compatibility patch is retained to reproduce our small CPU adaptations.
+The tested external version and compatibility edits are described in that guide.
 Cloning this repository does not download NVIDIA's source, datasets, or weights.
 
 ## Repository layout
 
 ```text
-data_fetch/        Dataset downloads, selected robot/example assets, and diagnostics
-soma_tools/        SOMA model downloads, human-motion decoding, and requirements
+data_tools/        Dataset downloads, SOMA setup/decoding, assets, and diagnostics
 retargeting/       Human-motion adapters, robot IK, export, viewer, and tests
 correction/        Stage implementations in src/, runnable scripts/, and tests/
 training/          Tier 2 policy-training implementation assignment
 reconstruction/    Tier 3 reconstruction implementation assignment
 experiments/       Experiment definitions and proposed episode roster
+setup/             CPU environment recipe, Windows package lock, and pip packages
 docs/              Method, interfaces, experiment notes, setup, and third-party notices
-scripts/           NVIDIA dependency bootstrap and legacy preview launcher
-patches/           Reproducible changes to the pinned NVIDIA CPU dependency
-upstream.lock.json Source revisions, compatibility-patch hash, and asset provenance
 ```
 
-See [data fetching](data_fetch/README.md), [SOMA setup](soma_tools/README.md), and
+See [dataset and SOMA tools](data_tools/README.md), [SOMA setup](docs/SOMA_SETUP.md), and
 [correction](correction/README.md) for their commands and file responsibilities.
 
-The ignored `upstream/` folder is a downloaded copy of NVIDIA's original project.
-`patches/` records our small compatibility edits to that source as text diffs.
-The setup script recreates the pinned NVIDIA version and applies those edits;
-our research code lives in the modules listed above.
+The optional local `upstream/` folder holds NVIDIA's original project. The
+[compatibility guide](docs/NVIDIA_COMPATIBILITY.md) explains the edits and links
+the patch, which is stored under `docs/`.
 
-Datasets, model weights, Python environments, checkpoints, generated outputs, and the NVIDIA checkout are excluded from Git. Follow [SETUP.md](docs/SETUP.md) to obtain dependencies and generate local artifacts. Existing Windows users can continue using `retarget.ps1`; portable Python commands are documented in setup.
+Datasets, model weights, Python environments, checkpoints, generated outputs, and the NVIDIA checkout are excluded from Git. Follow [SETUP.md](docs/SETUP.md) to obtain dependencies and generate local artifacts. Public commands use Python directly; machine-specific convenience launchers are not included.
 
 The two development branches are `work/tier2-rl` and `work/tier3-reconstruction`. Use a separate worktree for each agent. Keep the same downstream learner and compute budget across the NVIDIA body baseline, our retargeting, and our retargeting plus correction.
 

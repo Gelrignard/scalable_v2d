@@ -1,5 +1,5 @@
 # Pinocchio comes from the Conda environment, not a second pip installation.
--r preview-requirements.txt
+-r setup/preview-requirements.txt
 -r correction/requirements.txt
 rtree
 # Install pin-pink==4.2.0 separately with --no-deps, then the local package:

@@ -24,34 +24,17 @@ Skip this section for standalone correction. Follow it for G1 retargeting,
 the book robot-trajectory trial, or robot viewers. NVIDIA's source is downloaded
 locally on request, excluded from Git, and not registered as a submodule.
 
-With Git and Python 3.11+ available:
-
-~~~text
-python scripts/bootstrap_upstream.py
-python -m data_fetch.fetch_preview_assets
-~~~
-
-The bootstrap fetches the revision in upstream.lock.json into ignored upstream/
-and applies the tracked compatibility patch. It refuses a conflicting existing
-checkout instead of resetting it. The second command fetches only G1 meshes and
-the pinned snack-box example, checking the LFS object hashes.
-
-The patch enables CPU NumPy readers, avoids unnecessary Torch imports, and
-limits the historical viewer to loopback. It does not change baseline IK costs.
-The separate training/evaluation revision in the lock file is intentionally
-different; do not replace the CPU dependency with it.
-
-Here, **upstream** means NVIDIA's original source project, which we use as a
-dependency. A **patch** is a text file listing edits relative to that source
-version. The bootstrap combines the pinned source with our compatibility patch
-so another checkout can reproduce the same local dependency.
+Follow [the optional dependency and patch guide](NVIDIA_COMPATIBILITY.md) for
+the tested source version, Git commands, and compatibility patch. The patch and
+its explanation are kept in `docs/`. The CPU retargeting dependency and the
+separate training/evaluation runtime use different source versions.
 
 ## 3. CPU retargeting environment
 
 Use Conda or Micromamba. The following uses Micromamba on PATH:
 
 ~~~text
-micromamba create -y -p ./.retarget-env -f preview-environment.yml
+micromamba create -y -p ./.retarget-env -f setup/preview-environment.yml
 micromamba run -p ./.retarget-env python -m pip install -r requirements-cpu.txt
 micromamba run -p ./.retarget-env python -m pip install --no-deps pin-pink==4.2.0
 micromamba run -p ./.retarget-env python -m pip install --no-deps -e ./retargeting
@@ -59,10 +42,9 @@ micromamba run -p ./.retarget-env python -m unittest discover -s retargeting/tes
 micromamba run -p ./.retarget-env python -m unittest discover -s correction/tests -v
 ~~~
 
-The existing Windows launchers expect .tools/Library/bin/micromamba.exe.
-The direct commands above also work with a separately installed executable.
-preview-conda-win64.lock records the tested Conda package builds for Windows;
-it is not a Linux lock file.
+Use your own Micromamba installation and shell. Machine-specific shortcuts are
+not distributed. `setup/preview-conda-win64.lock` records the tested Conda
+package builds for Windows; it is not a Linux lock file.
 
 Tests requiring generated local audit artifacts explicitly skip on a fresh
 clone. No generated artifacts or model weights are committed.
@@ -85,14 +67,14 @@ contact-aware reference. Both variants are also selected by default.
 
 The current fetch/decode commands are deliberately Tier 1 specific:
 
-Download utilities are grouped in `data_fetch/`. SOMA model download, decoding,
-and dependency requirements are grouped in `soma_tools/`; the latter name avoids
-shadowing the installed `soma` library. Existing environment and cache paths are
-preserved, including `.soma-env` and `correction/data/soma_assets`.
+Dataset downloads, SOMA model downloads/decoding, and SOMA requirements are
+grouped together in `data_tools/`. This package does not shadow the installed
+`soma` library. Existing environment and cache paths are preserved, including
+`.soma-env` and `correction/data/soma_assets`.
 
 ~~~text
-python -m data_fetch.fetch_sample --episode 11
-python -m soma_tools.fetch_assets
+python -m data_tools.fetch_sample --episode 11
+python -m data_tools.fetch_soma_assets
 python -m venv .soma-env
 ~~~
 
@@ -100,8 +82,8 @@ Use .soma-env/Scripts/python.exe on Windows or .soma-env/bin/python on Linux:
 
 ~~~text
 <soma-python> -m pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
-<soma-python> -m pip install -r soma_tools/requirements.txt
-<soma-python> -m soma_tools.decode_tier1
+<soma-python> -m pip install -r data_tools/requirements-soma.txt
+<soma-python> -m data_tools.decode_tier1
 micromamba run -p ./.retarget-env python retargeting/scripts/run.py --input correction/outputs/tier1_book/human_motion.npz --method contact_aware --output correction/outputs/tier1_book/retargeted
 micromamba run -p ./.retarget-env python -m correction.scripts.book_pipeline
 ~~~
@@ -125,18 +107,15 @@ METHOD.md and the handoff retain descriptions of measured local artifacts.
 Their generated-output links become usable after reproducing the experiment;
 they do not imply that those artifacts ship with this repository.
 
-## Setup files at the repository root
+## Environment setup files
 
 | File | Purpose |
 |---|---|
-| `preview-environment.yml` | Conda/Micromamba environment recipe: Python, Pinocchio, and numerical libraries |
-| `preview-conda-win64.lock` | Exact Windows Conda package builds and hashes for reproducing the tested environment |
-| `preview-requirements.txt` | Additional pinned pip packages used by retargeting and visualization |
+| `setup/preview-environment.yml` | Conda/Micromamba environment recipe: Python, Pinocchio, and numerical libraries |
+| `setup/preview-conda-win64.lock` | Exact Windows Conda package builds and hashes for reproducing the tested environment |
+| `setup/preview-requirements.txt` | Additional pinned pip packages used by retargeting and visualization |
 | `requirements-cpu.txt` | Combined pip dependency list for retargeting and correction; includes the other requirements files |
-| `preview.ps1` | Legacy Windows shortcut for the original preview, now delegating to retargeting |
-| `retarget.ps1` | Windows shortcut for retargeting, viewing, evaluation, and tests |
-| `upstream.lock.json` | External source revisions and checksums; contains dependency metadata, not the NVIDIA code |
 
 The `preview` prefix dates from the first CPU demonstration. Those environment
-files still support the current retargeting setup. The `.ps1` files are optional
-Windows convenience commands; the Python commands above are also available.
+files still support the current retargeting setup. Use the public Python commands
+above and create any convenience shortcuts in your own local environment.

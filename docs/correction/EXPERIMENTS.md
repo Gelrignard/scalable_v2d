@@ -4,7 +4,7 @@ See [METHOD.md](METHOD.md) for the mathematical derivation, required inputs,
 measured limitations, and proposed policy-learning comparison.
 
 The correction stages use the existing retargeting output and CPU robot runtime.
-The PowerShell launcher activates that runtime; it does not install packages.
+Run the commands below in the configured CPU environment.
 See [the module README](../../correction/README.md) for the current layout.
 
 ## Implemented scope
@@ -32,10 +32,10 @@ necessary model-level check; it is not a robot-execution certificate.
 ## Run from the workspace root
 
 ```powershell
-.\correction\scripts\run.ps1 -Mode test
-.\correction\scripts\run.ps1 -Mode demo
-.\correction\scripts\run.ps1 -Mode fetch -Episode 11
-.\correction\scripts\run.ps1 -Mode diagnostic -Episode 11 -MassKg 1
+python -m unittest discover -s correction/tests -v
+python -m correction.scripts.demo
+python -m data_tools.fetch_sample --episode 11
+python -m data_tools.tier1_diagnostic --episode 11 --mass-kg 1
 ```
 
 The sample is the real Tier 1 `light_blue_book` episode 11, 901 frames. The fetcher
@@ -49,7 +49,7 @@ No cloud compute or GPU training is used.
 ## Real Tier 1 robot comparison
 
 The integration uses the actual 900 visible frames of episode 11. The final
-invisible frame is excluded. `soma_tools/decode_tier1.py` applies the official SOMA model,
+invisible frame is excluded. `data_tools/decode_tier1.py` applies the official SOMA model,
 including time-varying flexible bone parameters, then the documented constant
 CV/SOMA/G1 coordinate transforms and supplied ground-plane leveling. Object poses
 remain prescribed. `.soma-env` is separate from the working Pinocchio environment.
@@ -73,12 +73,12 @@ direction, closed-loop stability, or full-robot dynamic feasibility.
 
 ```powershell
 # Existing CPU SOMA environment: torch 2.8.0+cpu, py-soma-x 0.2.1, pyarrow, scipy.
-.\.soma-env\Scripts\python.exe -m soma_tools.decode_tier1
-.\retarget.ps1 run --input correction/outputs/tier1_book/human_motion.npz --method contact_aware --output correction/outputs/tier1_book/retargeted
-.\.tools\Library\bin\micromamba.exe run -p ./.retarget-env python -m correction.scripts.book_trial
-.\.tools\Library\bin\micromamba.exe run -p ./.retarget-env python -m correction.scripts.repair_robot
-.\.tools\Library\bin\micromamba.exe run -p ./.retarget-env python -m correction.scripts.audit_book
-.\.tools\Library\bin\micromamba.exe run -p ./.retarget-env python -m correction.scripts.view_book
+.\.soma-env\Scripts\python.exe -m data_tools.decode_tier1
+python retargeting/scripts/run.py --input correction/outputs/tier1_book/human_motion.npz --method contact_aware --output correction/outputs/tier1_book/retargeted
+python -m correction.scripts.book_trial
+python -m correction.scripts.repair_robot
+python -m correction.scripts.audit_book
+python -m correction.scripts.view_book
 ```
 
 Outputs are in `correction/outputs/tier1_book/`: the original and corrected robot
@@ -104,8 +104,8 @@ optimization approximately 6.3 s; final local robot projection approximately
 and the separate force audit. These are measurements
 on this sample, not evidence of reduced RL cost or large-dataset scalability.
 
-Convenience commands: `.\correction\scripts\run.ps1 -Mode book` reruns correction and
-audits from the saved reference; `-Mode view-book` starts the comparison viewer.
+Convenience commands: `python -m correction.scripts.book_pipeline` reruns correction and
+audits from the saved reference; `python -m correction.scripts.view_book` starts the comparison viewer.
 
 The **1 kg mass is an explicit experimental assumption**, not a measurement.
 The diagnostic assumes a uniform solid bounding box for COM/inertia and gravity

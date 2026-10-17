@@ -1,9 +1,9 @@
 # Correction stages and entry points
 
 The correction module starts from a retargeted reference. Direct dataset access
-lives in `data_fetch/`; SOMA model setup and decoding live in `soma_tools/`.
+and SOMA model setup/decoding live together in `data_tools/`.
 All commands below run from the repository root using the CPU environment
-described in [SETUP.md](../SETUP.md), except `soma_tools.decode_tier1`, which
+described in [SETUP.md](../SETUP.md), except `data_tools.decode_tier1`, which
 uses the separate SOMA environment.
 
 ```mermaid
@@ -87,16 +87,15 @@ The existing book audit still reports `accepted_as_feasible_manipulation=false`.
 | `correction.robot_repair.PatchTrackingTask` | `correction.src.optimization.robot_trajectory.PatchTrackingTask` |
 | `python -m correction.robot_repair` | `python -m correction.scripts.repair_robot` |
 | Other `python -m correction.<runner>` commands | `python -m correction.scripts.<runner>` |
-| `correction/run.ps1` | `correction/scripts/run.ps1` |
-| `python -m correction.fetch_sample` | `python -m data_fetch.fetch_sample` |
-| `python -m correction.fetch_soma_assets` | `python -m soma_tools.fetch_assets` |
-| `python -m correction.decode_tier1` | `python -m soma_tools.decode_tier1` |
-| `python -m correction.tier1_diagnostic` | `python -m data_fetch.tier1_diagnostic` |
+| `python -m correction.fetch_sample` | `python -m data_tools.fetch_sample` |
+| `python -m correction.fetch_soma_assets` | `python -m data_tools.fetch_soma_assets` |
+| `python -m correction.decode_tier1` | `python -m data_tools.decode_tier1` |
+| `python -m correction.tier1_diagnostic` | `python -m data_tools.tier1_diagnostic` |
 
 The briefly root-level commands `fetch_sample`, `tier1_diagnostic`,
 `fetch_soma_assets`, and `decode_tier1` now use the same replacements in the
-right column. SOMA dependencies are in `soma_tools/requirements.txt`; the selected
-NVIDIA example download is `python -m data_fetch.fetch_preview_assets`.
+right column. SOMA dependencies are in `data_tools/requirements-soma.txt`; the selected
+NVIDIA example download is `python -m data_tools.fetch_preview_assets`.
 
 Old flat module aliases are intentionally absent so there is one implementation
 location per stage. Existing generated data stays in `correction/data/` and

@@ -60,7 +60,7 @@ and patches are synthetic, not appropriate parameters for the challenge book.
 
 ## Prepare and solve a phase
 
-Run these modules with the CPU environment used by `correction/scripts/run.ps1`:
+Run these modules with the CPU environment described in [SETUP.md](../SETUP.md):
 
 ```text
 python -m correction.scripts.prepare_phase --reference reference.npz --config config.json --output phase.npz --start-frame 100 --stop-frame 160 --stride 3

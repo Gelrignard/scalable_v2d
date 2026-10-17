@@ -657,7 +657,7 @@ The first milestone is to repair the remaining sticking inconsistency and test t
 
 | Component | File |
 |---|---|
-| Official SOMA-X decoding and coordinate conversion | [soma_tools/decode_tier1.py](../../soma_tools/decode_tier1.py) |
+| Official SOMA-X decoding and coordinate conversion | [data_tools/decode_tier1.py](../../data_tools/decode_tier1.py) |
 | Object inverse dynamics and smoothing | [object_wrench.py](../../correction/src/dynamics/object_wrench.py) |
 | Rigid-body and contact-patch definitions | [models.py](../../correction/src/dynamics/models.py) |
 | Inner force QP and outer contact optimization | [contact_optimizer.py](../../correction/src/optimization/contact_optimizer.py) |
