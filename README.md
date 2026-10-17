@@ -25,6 +25,25 @@ The research question is whether this preprocessing reduces the GPU time and env
 
 Kinematic playback is not physical simulation. The current corrected book reference is **not accepted as a dynamically feasible manipulation**, and no trained policy or leaderboard result is included.
 
+## Optional NVIDIA dependency
+
+[NVIDIA Video to Data](https://github.com/nvidia-isaac/video_to_data) is an
+optional external dependency. Its source is not included in this repository or
+registered as a Git submodule. A locally downloaded `upstream/` directory is
+excluded by `.gitignore`.
+
+- **Core dynamics/contact optimization:** no NVIDIA checkout is needed. Install
+  `correction/requirements.txt`, then run `python -m correction.scripts.demo` or
+  the standalone mechanics/optimization tests in [SETUP.md](docs/SETUP.md).
+- **G1 retargeting and the book robot trial:** the current adapters require
+  NVIDIA's robot code and assets. Install them explicitly using
+  `python scripts/bootstrap_upstream.py`, then
+  `python -m data_fetch.fetch_preview_assets`.
+
+`upstream.lock.json` contains only dependency versions, source URLs, and hashes.
+The compatibility patch is retained to reproduce our small CPU adaptations.
+Cloning this repository does not download NVIDIA's source, datasets, or weights.
+
 ## Repository layout
 
 ```text

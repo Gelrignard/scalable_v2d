@@ -4,7 +4,25 @@ Run commands from the repository root. The tested host is Windows; Linux
 environment creation must be validated independently. No GPU, Isaac Lab, model
 training, or cloud account is needed for the CPU correction tests.
 
-## 1. Source dependency
+## 1. Standalone correction without NVIDIA source
+
+With a Python 3.11+ environment active:
+
+~~~text
+python -m pip install -r correction/requirements.txt
+python -m correction.scripts.demo
+python -m unittest correction.tests.test_dynamics correction.tests.test_optimizer correction.tests.test_integration -v
+~~~
+
+These commands run the generic dynamics/contact optimizer without an `upstream/`
+checkout, G1 assets, Pinocchio, or SOMA. The robot retargeting/book integration and
+viewers use the optional dependency below.
+
+## 2. Optional NVIDIA source dependency
+
+Skip this section for standalone correction. Follow it for G1 retargeting,
+the book robot-trajectory trial, or robot viewers. NVIDIA's source is downloaded
+locally on request, excluded from Git, and not registered as a submodule.
 
 With Git and Python 3.11+ available:
 
@@ -28,7 +46,7 @@ dependency. A **patch** is a text file listing edits relative to that source
 version. The bootstrap combines the pinned source with our compatibility patch
 so another checkout can reproduce the same local dependency.
 
-## 2. CPU retargeting environment
+## 3. CPU retargeting environment
 
 Use Conda or Micromamba. The following uses Micromamba on PATH:
 
@@ -53,7 +71,7 @@ The optional scientific plot command, `python -m correction.scripts.plot_book`, 
 requires Matplotlib (`python -m pip install "matplotlib>=3.8,<4"`). It is not
 needed by the optimizer, viewer, or tests.
 
-## 3. Pinned example and synthetic correction
+## 4. Pinned example and synthetic correction
 
 ~~~text
 micromamba run -p ./.retarget-env python retargeting/scripts/run.py --method both
@@ -63,7 +81,7 @@ micromamba run -p ./.retarget-env python -m correction.scripts.demo
 The retargeting CLI compares the pinned NVIDIA body baseline with our
 contact-aware reference. Both variants are also selected by default.
 
-## 4. Actual Tier 1 book input
+## 5. Actual Tier 1 book input
 
 The current fetch/decode commands are deliberately Tier 1 specific:
 
@@ -95,7 +113,7 @@ The book correction is one short airborne phase. Its output is not accepted as
 a dynamically feasible manipulation. It is not a Tier 2 adapter or a trained
 policy; those implementation gaps are listed in the workstream plans.
 
-## 5. Submission tooling and excluded outputs
+## 6. Submission tooling and excluded outputs
 
 Download the current official kit from
 https://nvidia-isaac.github.io/video_to_data/v2d_challenge/assets/v2d_submission_kit.zip
@@ -106,3 +124,19 @@ The kit itself is not committed.
 METHOD.md and the handoff retain descriptions of measured local artifacts.
 Their generated-output links become usable after reproducing the experiment;
 they do not imply that those artifacts ship with this repository.
+
+## Setup files at the repository root
+
+| File | Purpose |
+|---|---|
+| `preview-environment.yml` | Conda/Micromamba environment recipe: Python, Pinocchio, and numerical libraries |
+| `preview-conda-win64.lock` | Exact Windows Conda package builds and hashes for reproducing the tested environment |
+| `preview-requirements.txt` | Additional pinned pip packages used by retargeting and visualization |
+| `requirements-cpu.txt` | Combined pip dependency list for retargeting and correction; includes the other requirements files |
+| `preview.ps1` | Legacy Windows shortcut for the original preview, now delegating to retargeting |
+| `retarget.ps1` | Windows shortcut for retargeting, viewing, evaluation, and tests |
+| `upstream.lock.json` | External source revisions and checksums; contains dependency metadata, not the NVIDIA code |
+
+The `preview` prefix dates from the first CPU demonstration. Those environment
+files still support the current retargeting setup. The `.ps1` files are optional
+Windows convenience commands; the Python commands above are also available.
