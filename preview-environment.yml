@@ -1,0 +1,13 @@
+name: v2d-local-preview
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pinocchio=3.8
+  - numpy
+  - scipy
+  - pip
+  - libblas=*=*openblas
+  - libcblas=*=*openblas
+  - liblapack=*=*openblas
+  - libopenblas=*=*openmp*

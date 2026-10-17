@@ -1,0 +1,16 @@
+{
+  "contact_enter_distance_m": 0.035,
+  "contact_exit_distance_m": 0.055,
+  "contact_enter_speed_m_s": 0.8,
+  "contact_enter_duration_s": 0.025,
+  "contact_release_duration_s": 0.025,
+  "contact_max_anchor_drift_m": 0.08,
+  "contact_blend_duration_s": 0.05,
+  "tip_clearance_m": 0.002,
+  "tip_free_cost": 0.5,
+  "tip_contact_cost": 5.0,
+  "penetration_cost": 5.0,
+  "velocity_fraction": 0.9,
+  "max_iterations": 100,
+  "step_tolerance": 0.00002
+}

@@ -1,0 +1,131 @@
+diff --git a/robotic_grounding/source/robotic_grounding/robotic_grounding/motion_schema/reader.py b/robotic_grounding/source/robotic_grounding/robotic_grounding/motion_schema/reader.py
+index eecac2b9b6..05476224f2 100644
+--- a/robotic_grounding/source/robotic_grounding/robotic_grounding/motion_schema/reader.py
++++ b/robotic_grounding/source/robotic_grounding/robotic_grounding/motion_schema/reader.py
+@@ -125,9 +125,12 @@ def _as_tensor(
+     if value is None:
+         return None
+     if not _TORCH_AVAILABLE:
+-        raise RuntimeError(
+-            "torch is required to materialize motion_v1 tensors but is not installed in this environment."
+-        )
++        if device not in (None, "cpu"):
++            raise RuntimeError("Torch is required for non-CPU motion data")
++        arr = np.asarray(value)
++        if arr.dtype == object or arr.size == 0:
++            return None
++        return arr.astype(np.int64 if np.issubdtype(arr.dtype, np.integer) else np.float32)
+ 
+     if isinstance(value, torch.Tensor):
+         out = value
+@@ -319,8 +322,8 @@ def load_motion_data_parquet(
+     ee_pose = _as_tensor(data["ee_pose_w"][0], device=device)
+     md.ee_pose_w = ee_pose
+     if ee_pose is not None and ee_pose.ndim == 3 and ee_pose.shape[-1] == 7:
+-        md.ee_pos_w = ee_pose[..., 0:3].contiguous()
+-        md.ee_quat_w = ee_pose[..., 3:7].contiguous()
++        md.ee_pos_w = ee_pose[..., 0:3].contiguous() if _TORCH_AVAILABLE else np.ascontiguousarray(ee_pose[..., 0:3])
++        md.ee_quat_w = ee_pose[..., 3:7].contiguous() if _TORCH_AVAILABLE else np.ascontiguousarray(ee_pose[..., 3:7])
+ 
+     # ---- Object -----------------------------------------------------------
+     md.object_name = data.get("object_name", [""])[0] or ""
+@@ -348,11 +351,11 @@ def load_motion_data_parquet(
+     md.object_body_wxyz = obj_quat
+     # Primary body (index 0).
+     if obj_pos is not None and obj_pos.ndim == 3:
+-        md.object_pos_w = obj_pos[:, 0].contiguous()
++        md.object_pos_w = obj_pos[:, 0].contiguous() if _TORCH_AVAILABLE else np.ascontiguousarray(obj_pos[:, 0])
+     elif obj_pos is not None:
+         md.object_pos_w = obj_pos
+     if obj_quat is not None and obj_quat.ndim == 3:
+-        md.object_quat_w = obj_quat[:, 0].contiguous()
++        md.object_quat_w = obj_quat[:, 0].contiguous() if _TORCH_AVAILABLE else np.ascontiguousarray(obj_quat[:, 0])
+     elif obj_quat is not None:
+         md.object_quat_w = obj_quat
+ 
+@@ -402,8 +405,8 @@ def load_motion_data_parquet(
+             if matches:
+                 ee_idx = matches[0]
+                 pose = md.ee_pose_w[:, ee_idx, :]
+-                setattr(md, f"{side}_wrist_position", pose[:, 0:3].contiguous())
+-                setattr(md, f"{side}_wrist_wxyz", pose[:, 3:7].contiguous())
++                setattr(md, f"{side}_wrist_position", pose[:, 0:3].contiguous() if _TORCH_AVAILABLE else np.ascontiguousarray(pose[:, 0:3]))
++                setattr(md, f"{side}_wrist_wxyz", pose[:, 3:7].contiguous() if _TORCH_AVAILABLE else np.ascontiguousarray(pose[:, 3:7]))
+ 
+     # ---- Contacts ---------------------------------------------------------
+     md.hand_contact_link_names = list(
+diff --git a/robotic_grounding/source/robotic_grounding/robotic_grounding/motion_schema/schema.py b/robotic_grounding/source/robotic_grounding/robotic_grounding/motion_schema/schema.py
+index b18a4757e4..a937533199 100644
+--- a/robotic_grounding/source/robotic_grounding/robotic_grounding/motion_schema/schema.py
++++ b/robotic_grounding/source/robotic_grounding/robotic_grounding/motion_schema/schema.py
+@@ -29,7 +29,6 @@ from dataclasses import dataclass, field, replace
+ from typing import Any
+ 
+ import pyarrow as pa
+-import torch
+ 
+ SCHEMA_VERSION: str = "motion_v1"
+ """Current schema version. Bumped on breaking changes."""
+@@ -588,6 +587,8 @@ class MotionData:
+             ValueError: If either FPS is invalid or a populated time-axis field
+                 is not aligned with the motion's frame count.
+         """
++        import torch
++
+         if not math.isfinite(target_fps) or target_fps <= 0.0:
+             raise ValueError(
+                 f"target_fps must be positive and finite, got {target_fps}."
+diff --git a/robotic_grounding/source/robotic_grounding/robotic_grounding/retarget/viser_playback.py b/robotic_grounding/source/robotic_grounding/robotic_grounding/retarget/viser_playback.py
+index 2df499f023..6e0c14ab7f 100644
+--- a/robotic_grounding/source/robotic_grounding/robotic_grounding/retarget/viser_playback.py
++++ b/robotic_grounding/source/robotic_grounding/robotic_grounding/retarget/viser_playback.py
+@@ -323,7 +323,7 @@ class ViserPlayback:
+             start_frame: Initial frame shown after the scene is built.
+         """
+         self._mode: str = "parquet"
+-        self._server = viser.ViserServer(host="0.0.0.0", port=port)
++        self._server = viser.ViserServer(host="127.0.0.1", port=port)
+ 
+         self._md: MotionData = load_motion_data_parquet(motion_file, device=device)
+         self._parquet: _ParquetArrays | None = _parse_motion_data(self._md)
+diff --git a/robotic_grounding/source/robotic_grounding/robotic_grounding/retarget/whole_body_kinematics.py b/robotic_grounding/source/robotic_grounding/robotic_grounding/retarget/whole_body_kinematics.py
+index 5c9e4c8953..070f1a4ac4 100644
+--- a/robotic_grounding/source/robotic_grounding/robotic_grounding/retarget/whole_body_kinematics.py
++++ b/robotic_grounding/source/robotic_grounding/robotic_grounding/retarget/whole_body_kinematics.py
+@@ -1,11 +1,12 @@
+ # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ # SPDX-License-Identifier: Apache-2.0
+-from typing import Any, Optional
++from __future__ import annotations
++
++from typing import TYPE_CHECKING, Any, Optional
+ 
+ import numpy as np
+ import pink
+ import pinocchio as pin
+-import torch
+ import viser
+ from loop_rate_limiters import RateLimiter
+ from pink import solve_ik
+@@ -19,6 +20,9 @@ from robotic_grounding.retarget.params import (
+ from robotic_grounding.retarget.pinocchio_viser_visualizer import ViserVisualizer
+ from robotic_grounding.retarget.robot_config import RobotRetargetConfig
+ 
++if TYPE_CHECKING:
++    import torch
++
+ 
+ class WholeBodyKinematics:
+     """Whole-body IK driven by a :class:`RobotRetargetConfig`.
+@@ -459,9 +463,9 @@ class WholeBodyKinematics:
+         Returns:
+             Dictionary with keys: q, frame_pose, frame_task_errors, num_optimization_iterations.
+         """
+-        if isinstance(source_joints, torch.Tensor):
++        if not isinstance(source_joints, np.ndarray):
+             source_joints = source_joints.detach().cpu().numpy()
+-        if isinstance(source_joints_wxyz, torch.Tensor):
++        if not isinstance(source_joints_wxyz, np.ndarray):
+             source_joints_wxyz = source_joints_wxyz.detach().cpu().numpy()
+ 
+         self.set_frame_tasks_target(

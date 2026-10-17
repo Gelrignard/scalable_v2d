@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "v2d-retarget"
+version = "0.1.0"
+description = "Contact-aware G1/Dex3 reference generation and diagnostics"
+requires-python = ">=3.11"
+dependencies = ["numpy", "scipy", "trimesh", "rtree", "pyarrow", "viser", "pin-pink==4.2.0", "qpsolvers[daqp]", "loop-rate-limiters"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+dev = ["ruff==0.17.0"]

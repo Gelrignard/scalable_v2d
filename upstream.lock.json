@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/nvidia-isaac/video_to_data.git",
+  "retarget_commit": "193382a184308f6800331f3db829f76dc4294cfe",
+  "patch": "patches/windows_cpu_preview.patch",
+  "patch_sha256": "ba1c354a36c7c3051f275b81cd9c64dca1015b2a6ceab504140c24d05a37705c",
+  "evaluation_commit": "8c778f905cb35f76f8e6cd6e2ea486da4fb9e0ef",
+  "evaluation_note": "Submission kit inspected on 2026-10-17; use a separate training/evaluation checkout and verify the current kit before submitting.",
+  "dataset_repository": "nvidia/video_to_data_challenge",
+  "dataset_revision": "5f68335f3acc802033d1e80728c1633197521de8",
+  "soma_repository": "nvidia/SOMA-X",
+  "soma_revision": "466879a83d57eabf3d875ded2d869f2075f90348",
+  "sparse_paths": [
+    "robotic_grounding/docs",
+    "robotic_grounding/scripts",
+    "robotic_grounding/source/robotic_grounding/robotic_grounding/motion_schema",
+    "robotic_grounding/source/robotic_grounding/robotic_grounding/retarget",
+    "robotic_grounding/source/robotic_grounding/robotic_grounding/assets/meshes/g1",
+    "robotic_grounding/source/robotic_grounding/robotic_grounding/assets/urdfs/g1",
+    "robotic_grounding/source/robotic_grounding/robotic_grounding/assets/human_motion_data/whole_body/soma/sequence_id=2026-03-06_10-24-18_snack_box_pick_and_place_01"
+  ]
+}

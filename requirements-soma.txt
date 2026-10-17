@@ -1,0 +1,6 @@
+# Separate from the Pinocchio environment. Install CPU Torch first:
+# python -m pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
+py-soma-x==0.2.1
+numpy==2.4.6
+scipy==1.17.1
+pyarrow==26.0.0

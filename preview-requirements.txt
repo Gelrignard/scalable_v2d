@@ -1,0 +1,8 @@
+viser==1.0.15
+pyarrow==26.0.0
+trimesh==4.12.2
+loop-rate-limiters==1.2.0
+qpsolvers[daqp]==4.9.0
+tqdm==4.70.1
+typing-extensions==4.16.0
+# Install pin-pink==4.2.0 separately with --no-deps: Pinocchio comes from Conda.

@@ -1,0 +1,5 @@
+numpy==2.4.6
+scipy==1.17.1
+qpsolvers[daqp]==4.9.0
+pyarrow==26.0.0
+trimesh==4.12.2
