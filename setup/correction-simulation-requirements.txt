@@ -1,2 +1,4 @@
 # Optional CPU collision checks and diagnostic physical replay for correction.
+-r ../correction/requirements.txt
 mujoco==3.16.0
+viser==1.0.15

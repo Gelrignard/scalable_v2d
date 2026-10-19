@@ -4,6 +4,26 @@ Refine a retargeted manipulation reference using object dynamics, contact-force
 optimization, and local arm/hand trajectory optimization. Dataset decoding is
 outside this module.
 
+## Supported manipulation demo
+
+The current manipulation experiment removes locomotion and arm IK from the
+physics test. Six force-limited spherical fingertips carry a freely simulated
+book using corrected contact commands. It does **not** claim a feasible G1 hand
+configuration. See the [method, results, and limits](../docs/correction/SUPPORTED_MANIPULATION.md).
+
+```text
+python -m pip install -r setup/correction-simulation-requirements.txt
+python -m correction.scripts.supported_book --verify
+python -m correction.scripts.view_supported --port 8083
+```
+
+The default is episode 11, frames 520–565, using the saved retargeting input at
+`correction/outputs/reorganization_check_20261017/retargeted/contact_aware.npz`.
+Pass `--input` to use another saved input. The core experiment requires the
+saved arrays, object mesh, and support-surface file, but does not import G1,
+Pinocchio, or NVIDIA code. Its initial state is an established grasp; it does
+not solve grasp acquisition.
+
 ## Layout
 
 ```text

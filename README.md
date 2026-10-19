@@ -7,6 +7,7 @@ The research question is whether this preprocessing reduces the GPU time and env
 ## Start here
 
 - [Method and mathematical derivation](docs/correction/METHOD.md)
+- [Supported EEF demo: measured contact dynamics and scope](docs/correction/SUPPORTED_MANIPULATION.md)
 - [Bounded correction: implementation, runtime and remaining failures](docs/correction/BOUNDED_CORRECTION.md)
 - [CPU setup and reproduction](docs/SETUP.md)
 - [Compute, challenge requirements, and implementation handoff](docs/COMPUTE_AND_IMPLEMENTATION_HANDOFF.md)
@@ -20,11 +21,11 @@ The research question is whether this preprocessing reduces the GPU time and env
 |---|---|
 | [Contact-aware retargeting](retargeting/README.md) | CPU body/hand IK, explicit contact targets, canonical input, diagnostics, viewers, and reference export |
 | [Dynamics-guided correction](correction/README.md) | Object inverse dynamics, sparse force allocation, bounded contact hypotheses, temporal robot refinement, collision checks, and diagnostic CPU rollouts |
-| Tier 1 demonstration | One short book phase exercised end to end; its physical audit still reports failures |
+| Tier 1 demonstration | A supported six-fingertip model tracks a book manipulation through contact dynamics; full G1 execution remains unvalidated |
 | Tier 2 policy comparison | Planned; general episode/noisy-input support and the trainer remain to be implemented |
 | Tier 3 reconstruction | Planned; no integrated video-to-motion reconstruction pipeline yet |
 
-Kinematic playback is not physical simulation. The current corrected book reference is **not accepted as a dynamically feasible manipulation**, and no trained policy or leaderboard result is included.
+Kinematic playback is not physical simulation. The [supported EEF experiment](docs/correction/SUPPORTED_MANIPULATION.md) isolates manipulation from walking and passes its reduced-model physical checks. The earlier full-G1 reference failed physical replay. No trained policy, full-robot execution certificate, or leaderboard result is included.
 
 ## Optional NVIDIA dependency
 

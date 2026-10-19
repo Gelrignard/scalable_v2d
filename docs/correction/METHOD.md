@@ -2,6 +2,14 @@
 
 **Method note and implementation audit — 12 October 2026**
 
+**Latest manipulation-only experiment, 19 October:** see
+[Supported EEF manipulation](SUPPORTED_MANIPULATION.md). A freely simulated
+book is carried by six force-limited contact pads, isolating the contact
+correction from locomotion and arm IK. Frames 520–565 track within 1.66 mm and
+2.07 degrees after correction, while the uncorrected contact replay loses
+orientation. This is reduced-model physical evidence, not full G1 validation.
+The earlier derivation and results below retain their original scope.
+
 **Implementation update, 19 October:** the [bounded correction experiment](BOUNDED_CORRECTION.md)
 adds sparse force checks, contact alternatives, temporal constraints, full-scene
 collision diagnostics and CPU physical replay. It processed frames 400–600
