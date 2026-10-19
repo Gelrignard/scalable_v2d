@@ -8,7 +8,7 @@ outside this module.
 
 The [three randomly selected full episodes](../docs/correction/FULL_EPISODE_COMPARISON.md)
 use an externally supported pelvis following the recorded path. The viewer
-keeps the robot centered and shows the entire before/after physical replay,
+preserves a fixed world frame and shows the entire before/after physical replay,
 including failures. This is a diagnostic comparison, not a successful-policy claim.
 
 ```text

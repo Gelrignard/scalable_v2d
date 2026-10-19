@@ -7,7 +7,6 @@ import time
 import numpy as np
 import trimesh
 import viser
-from scipy.spatial.transform import Rotation
 from correction.scripts.view_book import NamedVisualizer
 from correction.src.preprocessing import retarget_bridge
 from v2d_retarget.core.robot import G1Kinematics
@@ -32,6 +31,7 @@ def serve(directory,port):
                                show_share_button=False,brand_color=(34,135,158))
     server.scene.set_up_direction('+z')
     grid = server.scene.add_grid('/floor',width=8,height=8,plane='xy')
+    server.scene.add_frame('/world_origin',axes_length=.25,axes_radius=.004)
     kin = G1Kinematics()
     nodes = []
     for i,name in enumerate(('baseline','corrected')):
@@ -54,7 +54,7 @@ def serve(directory,port):
         fixture = server.scene.add_line_segments(prefix+'/fixture',np.zeros((1,2,3),np.float32),
                                                 colors=(85,110,130),line_width=4.)
         nodes.append(dict(group=group,robot=robot,meshes=meshes,label=label_handle,fixture=fixture,name=name))
-    server.gui.add_markdown('## Three full episodes\n\nDynamic arms, hands and object. Moving pelvis fixture; no walking.')
+    server.gui.add_markdown('## Three full episodes\n\n**Fixed world frame.** Solid robot and object: simulated motion. Moving pelvis fixture; no walking.')
     select = server.gui.add_dropdown('Episode',options=list(episodes))
     mode = server.gui.add_dropdown('View',options=['Before / after','Corrected only','Before only'])
     frame = server.gui.add_slider('Frame',min=0,max=857,step=1,initial_value=0)
@@ -62,49 +62,60 @@ def serve(directory,port):
     speed = server.gui.add_dropdown('Speed',options=['1×','0.5×','0.25×'],initial_value='0.5×')
     whole = server.gui.add_button('Focus whole robot')
     with server.gui.add_folder('Camera and overlays',expand_by_default=False):
-        follow = server.gui.add_checkbox('Keep robot centered',initial_value=True)
         desired = server.gui.add_checkbox('Reference object outline',initial_value=False)
         collisions = server.gui.add_checkbox('Robot collision geometry',initial_value=False)
         hands = server.gui.add_button('Focus hands')
         object_button = server.gui.add_button('Focus actual object')
+        episode_button = server.gui.add_button('Fit whole episode')
     status = server.gui.add_markdown('')
     with server.gui.add_folder('Whole-episode result and assumptions',expand_by_default=False):
         overview = server.gui.add_markdown('')
         server.gui.add_markdown(f'Random seed **{selection["seed"]}**, drawn from all 30 Tier 1 episodes before evaluation. All frames retained at source timing.\n\n'
             'The solid object is simulated. The optional orange outline is the recorded target. Mass and friction are assumed; '
-            'the stroller is one rigid body without articulated wheels. No object pose resets, object welds or externally applied object forces during replay.')
+            'the stroller is one rigid body without articulated wheels. No object pose resets, object welds or externally applied object forces during replay.\n\n'
+            '**Left:** physical replay driven by the original contact-aware retargeted commands. '
+            '**Right:** physical replay driven by corrected waist/arm/hand commands plus hand-force feedforward. '
+            'Both use the same supported pelvis path and frozen legs. These are simulated states, not direct command-pose playback.\n\n'
+            'World axes stay fixed. The two copies have constant display offsets of −0.8 m / +0.8 m along world Y; '
+            'single-view modes use the original saved world coordinates. Camera focus changes only the camera.')
     lock = threading.RLock()
 
-    def transforms():
+    def current_frame():
         episode = episodes[select.value]; ref = episode['ref']; j = min(int(frame.value),len(ref['timestamps'])-1)
-        root = ref['baseline_command_q'][j if follow.value else 0,:7]
-        yaw = Rotation.from_quat(root[3:7]).as_euler('xyz')[2]
-        rotation = Rotation.from_euler('z',-yaw)
-        origin = root[:3].copy(); origin[2] = 0.
-        return episode,j,rotation,origin
+        return episode,j
 
     def camera(client,kind='whole'):
-        episode,j,rot,origin = transforms()
+        episode,j = current_frame()
         compare = mode.value == 'Before / after'
         chosen = 'baseline' if mode.value == 'Before only' else 'corrected'
         centers = []
         for name in (('baseline','corrected') if compare else (chosen,)):
+            if kind == 'episode':
+                points = np.vstack((episode[name]['q'][:,:3],episode[name]['object_positions'],episode['ref']['object_positions'])).copy()
+                if compare: points[:,1] += -.8 if name == 'baseline' else .8
+                centers.extend(points)
+                continue
             if kind == 'hands': point = episode[name]['fk_tip_positions'][j].mean(0)
             elif kind == 'object': point = episode[name]['object_positions'][j]
             else:
                 point = episode[name]['q'][j,:3].copy()
                 point[2] = (point[2]+.7)/2
-            center = rot.apply(point-origin)
+            center = point.copy()
             if compare: center[1] += -.8 if name == 'baseline' else .8
             centers.append(center)
         centers = np.asarray(centers)
-        center = centers.mean(0)
+        center = (centers.min(0)+centers.max(0))/2
         aspect = max(.25,client.camera.aspect)
-        # Fit both robots even in the narrow desktop sidebar. The orbit target
-        # remains on the manipulation scene regardless of viewport aspect.
+        # Only the camera moves. Saved world trajectories and world orientation
+        # are never recentered, yaw-aligned, or transformed as time advances.
         half_width = np.ptp(centers[:,1])/2+(.5 if kind == 'whole' else .35)
         distance = max(2.5 if kind == 'whole' else 1.8, .4+half_width/(np.tan(.85/2)*aspect))
         offset = np.array([distance,0.,.35*distance] if compare else ([1.,-.9,.5] if kind != 'whole' else [2.,-1.5,.8]))
+        if kind == 'episode':
+            # Bound the complete episode in a sphere, including robot extent.
+            radius = float(np.max(np.linalg.norm(centers-center,axis=1)))+.8
+            half_fov = min(.85/2,np.arctan(np.tan(.85/2)*aspect))
+            offset = np.array([1.,0.,.35])*radius/np.sin(half_fov)
         client.camera.position = center+offset
         client.camera.look_at = center  # LAST: Viser position setter moves look_at.
         client.camera.up_direction = (0.,0.,1.)
@@ -112,7 +123,7 @@ def serve(directory,port):
 
     def update(_=None):
         with lock:
-            episode,j,rotation,origin = transforms()
+            episode,j = current_frame()
             ref = episode['ref']; compare = mode.value == 'Before / after'
             with server.atomic():
                 grid.position = (0.,0.,float(ref['floor_z']))
@@ -121,8 +132,8 @@ def serve(directory,port):
                     visible = compare or (name == ('baseline' if mode.value == 'Before only' else 'corrected'))
                     node['group'].visible = visible
                     offset = np.array([0.,-.8 if i == 0 else .8,0.]) if compare else np.zeros(3)
-                    node['group'].wxyz = rotation.as_quat(scalar_first=True)
-                    node['group'].position = offset-rotation.apply(origin)
+                    node['group'].wxyz = (1.,0.,0.,0.)
+                    node['group'].position = offset
                     node['robot'].display(data['q'][j]); node['robot'].displayCollisions(collisions.value)
                     for label,(actual,outline) in node['meshes'].items():
                         actual.visible = label == select.value
@@ -132,7 +143,7 @@ def serve(directory,port):
                             outline.position = ref['object_positions'][j]; outline.wxyz = ref['object_wxyz'][j]
                     root = data['q'][j,:3]
                     node['label'].position = root+[0.,0.,.9]
-                    node['label'].text = ('BEFORE' if i == 0 else 'AFTER')+' · simulated'
+                    node['label'].text = ('ORIGINAL COMMANDS' if i == 0 else 'CORRECTED + FORCE GUIDANCE')+' · simulated'
                     floor = root.copy(); floor[2] = float(ref['floor_z'])
                     node['fixture'].points = np.array([[floor,root]],np.float32)
                 before,after = episode['baseline'],episode['corrected']
@@ -173,12 +184,15 @@ def serve(directory,port):
     @object_button.on_click
     def focus_object(_):
         for client in server.get_clients().values(): camera(client,'object')
+    @episode_button.on_click
+    def fit_episode(_):
+        for client in server.get_clients().values(): camera(client,'episode')
     @mode.on_update
     def change_mode(_):
         update()
         for client in server.get_clients().values(): camera(client)
     select.on_update(episode_changed)
-    for control in (frame,follow,desired,collisions): control.on_update(update)
+    for control in (frame,desired,collisions): control.on_update(update)
     episode_changed()
     print(f'Full episodes: http://127.0.0.1:{port}',flush=True)
     while True:

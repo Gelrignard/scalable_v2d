@@ -36,8 +36,10 @@ The pelvis follows the retargeted recording through an explicitly external mocap
 weld. That weld constrains only the pelvis, never the object. Twelve leg joints
 are frozen at their initial angles and leg collisions are disabled. Waist, arms
 and fingers remain dynamic (31 actuated joints). Frozen legs are displayed as a
-fixture, not as a walking motion. The robot may be translated and yaw-aligned for
-viewing; this display transform does not modify the saved physical trajectory.
+fixture, not as a walking motion. The viewer preserves the fixed world
+orientation and trajectory. The two copies
+use only constant display translations of -0.8/+0.8 m along world Y. Single-view
+modes show the original saved world coordinates without a display translation.
 
 The object is a free rigid body with 24 V-HACD convex collision pieces made from
 the supplied mesh. This approximates concavities; it is not exact mesh contact.
@@ -120,11 +122,19 @@ they do not fetch the dataset automatically. Optional `--episode 18` limits the
 batch to one already selected episode. V-HACD requires the optional `vhacdx`
 package. Object decomposition is cached by mesh hash and decomposition settings.
 
+The solid robots and objects are actual saved simulated states. The left robot
+is driven by the original contact-aware retargeted commands; the right is driven
+by corrected waist/arm/hand commands plus contact-force feedforward. Neither is
+direct kinematic playback of the command trajectory. The orange object outline,
+when enabled, is the desired recorded motion shared by both runs.
+
 The episode selector preserves complete timelines. Before/after, corrected-only
 and before-only modes share the same scrubber. The camera target is set after
-camera position (Viser's position setter also moves its target). Robot centering
-and hand/object/whole-robot focus controls keep orbit and zoom usable near the
-manipulation scene. Playback starts paused at frame zero.
+camera position (Viser's position setter also moves its target). Hand/object/whole-robot
+focus controls move only the camera and its orbit target near the current scene.
+Playback never translates or rotates the coordinate frame or automatically moves
+the camera. **Fit whole episode** frames the full world-space paths. Playback
+starts paused at frame zero.
 On a narrow browser panel, click the **Connected** header to collapse the
 controls while orbiting; click it again to select an episode or scrub time.
 Use **Corrected only** for a larger close-up, and expand **Camera and overlays**
