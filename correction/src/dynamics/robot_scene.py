@@ -18,7 +18,7 @@ def numbers(values):
 
 
 class RobotScene:
-    def __init__(self, kin, bounds, support_path, *, mass=1., friction=.6):
+    def __init__(self, kin, bounds, support_path, *, mass=1., friction=.6, object_parts=None, floor_z=0.):
         self.kin = kin
         self.friction = friction
         root = ET.parse(kin.config.urdf_path).getroot()
@@ -67,20 +67,33 @@ class RobotScene:
             joint.set('armature', '.00149' if 'hand' in name else '.01')
             joint.set('damping', '.02')
         ET.SubElement(world, 'geom', name='floor', type='plane', size='5 5 .1',
-                      friction=f'{friction} .005 .0001')
+                      friction=f'{friction} .005 .0001', pos=numbers([0.,0.,floor_z]))
         support = Path(support_path).read_text()
-        radius = float(re.search(r'double radius = ([\d.eE+-]+)', support).group(1))
-        height = float(re.search(r'double height = ([\d.eE+-]+)', support).group(1))
-        center = list(map(float, re.search(r'xformOp:translate = \(([^)]+)\)', support).group(1).split(',')))
-        self.table_center, self.table_radius, self.table_top = np.array(center), radius, center[2]+height/2
+        self.table_center, self.table_radius, self.table_top = np.zeros(3), 0., 0.
+        if 'Cylinder' in support:
+            radius = float(re.search(r'double radius = ([\d.eE+-]+)', support).group(1))
+            height = float(re.search(r'double height = ([\d.eE+-]+)', support).group(1))
+            center = list(map(float, re.search(r'xformOp:translate = \(([^)]+)\)', support).group(1).split(',')))
+            self.table_center, self.table_radius, self.table_top = np.array(center), radius, center[2]+height/2
+            ET.SubElement(world, 'geom', name='table', type='cylinder', size=numbers([radius, height/2]),
+                          pos=numbers(center), friction=f'{friction} .005 .0001')
+        elif re.search(r'def (?:Mesh|Cube|Sphere|Capsule)', support):
+            raise ValueError('Unsupported support surface geometry')
         self.bounds = np.asarray(bounds)
-        ET.SubElement(world, 'geom', name='table', type='cylinder', size=numbers([radius, height/2]),
-                      pos=numbers(center), friction=f'{friction} .005 .0001')
         book = ET.SubElement(world, 'body', name='book')
         ET.SubElement(book, 'freejoint', name='book_root')
-        ET.SubElement(book, 'geom', name='book_geom', type='box',
-                      size=numbers((bounds[1]-bounds[0])/2), pos=numbers(bounds.mean(axis=0)),
-                      mass=str(mass), friction=f'{friction} .005 .0001', margin='.002')
+        if object_parts is None:
+            ET.SubElement(book, 'geom', name='book_geom', type='box',
+                          size=numbers((bounds[1]-bounds[0])/2), pos=numbers(bounds.mean(axis=0)),
+                          mass=str(mass), friction=f'{friction} .005 .0001', margin='.002')
+        else:
+            # Convex pieces preserve cavities much better than one bounding box.
+            # Mass fractions are explicit and fixed before the comparison.
+            for i, (path, fraction) in enumerate(object_parts):
+                ET.SubElement(xml.find('asset'), 'mesh', name=f'object_part_{i}', file=str(Path(path).resolve()))
+                ET.SubElement(book, 'geom', name='book_geom' if i == 0 else f'object_geom_{i}',
+                              type='mesh', mesh=f'object_part_{i}', mass=str(mass*fraction),
+                              friction=f'{friction} .005 .0001', margin='.002')
         self.xml = ET.tostring(xml, encoding='unicode')
         self.model = mujoco.MjModel.from_xml_string(self.xml)
         self.data = mujoco.MjData(self.model)
@@ -93,8 +106,9 @@ class RobotScene:
         self.book_body = self.model.body('book').id
         self.book_geom = self.model.geom('book_geom').id
         self.floor_geom = self.model.geom('floor').id
-        self.table_geom = self.model.geom('table').id
-        self.environment = {self.floor_geom, self.table_geom}
+        self.object_geoms = set(np.flatnonzero(self.model.geom_bodyid == self.book_body))
+        self.table_geom = self.model.geom('table').id if self.table_radius else -1
+        self.environment = {g for g in (self.floor_geom, self.table_geom) if g >= 0}
 
     def set_state(self, q, object_position, object_wxyz):
         self.data.qpos[self.root_q:self.root_q+3] = q[:3]
@@ -122,7 +136,7 @@ class RobotScene:
             names = [self.model.geom(g).name for g in (a, b)]
             foot_support = self.floor_geom in (a, b) and any('ankle' in n for n in names)
             target = -.002 if foot_support else margin
-            kind = 'robot_object' if self.book_geom in (a, b) else (
+            kind = 'robot_object' if self.object_geoms.intersection((a, b)) else (
                 'environment' if self.environment.intersection((a, b)) else 'self')
             jacobian = None
             if movable is not None:

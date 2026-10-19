@@ -8,6 +8,7 @@ The research question is whether this preprocessing reduces the GPU time and env
 
 - [Method and mathematical derivation](docs/correction/METHOD.md)
 - [G1/Dex3 supported physics: robot integration, errors, and SONIC's role](docs/correction/SUPPORTED_G1.md)
+- [Three random full episodes: supported pelvis, before/after physics and failed tracking results](docs/correction/FULL_EPISODE_COMPARISON.md)
 - [Supported EEF demo: measured contact dynamics and scope](docs/correction/SUPPORTED_MANIPULATION.md)
 - [Bounded correction: implementation, runtime and remaining failures](docs/correction/BOUNDED_CORRECTION.md)
 - [CPU setup and reproduction](docs/SETUP.md)

@@ -73,10 +73,15 @@ def serve(directory,port):
             'These are local MuJoCo assumptions, not official challenge validation.')
 
     def camera(client,close=False):
-        center=ref['object_positions'][len(ref['frame_ids'])//2] if close else np.array([-.28,0.,.85])
+        j=int(frame.value)-int(ref['frame_ids'][0])
+        center=ref['object_positions'][j] if close else ref['fixed_q'][:3]+[0.,0.,.1]
+        compare=mode.value!='Corrected only'
+        offset=np.array([-1.5,0.,.45] if compare else ([-.65,-.6,.3] if close else [-1.25,-1.25,.7]))
+        # Viser's position setter translates look_at too. Set the target LAST.
+        client.camera.position=center+offset
         client.camera.look_at=center
-        client.camera.position=center+np.array([-.85,-1.05,.35] if close else [-1.7,-2.2,1.05])
         client.camera.up_direction=(0.,0.,1.)
+        client.camera.fov=.8
 
     @server.on_client_connect
     def connect(client):camera(client)
@@ -112,7 +117,11 @@ def serve(directory,port):
             status.content=(f'Frame **{frame.value}** · simulation **{ref["timestamps"][j]:.2f} s**\n\n'
                 f'Book error **{1000*actual["position_error"][j]:.1f} mm / {np.rad2deg(actual["rotation_error"][j]):.1f}°**. '
                 f'Contact patches L/R: **{actual["contacts_per_hand"][j,0]} / {actual["contacts_per_hand"][j,1]}**.')
-    for control in (mode,frame,desired,arrows,collision):control.on_update(update)
+    @mode.on_update
+    def change_mode(_):
+        update()
+        for client in server.get_clients().values():camera(client,True)
+    for control in (frame,desired,arrows,collision):control.on_update(update)
     update()
     print(f'Supported G1 physics: http://127.0.0.1:{port}',flush=True)
     while True:

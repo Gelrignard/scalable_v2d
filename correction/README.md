@@ -6,6 +6,16 @@ outside this module.
 
 ## Supported manipulation demo
 
+The [three randomly selected full episodes](../docs/correction/FULL_EPISODE_COMPARISON.md)
+use an externally supported pelvis following the recorded path. The viewer
+keeps the robot centered and shows the entire before/after physical replay,
+including failures. This is a diagnostic comparison, not a successful-policy claim.
+
+```text
+python -m correction.scripts.random_full_episodes
+python -m correction.scripts.view_full_episodes --port 8084
+```
+
 The **G1/Dex3 integration** fixes the pelvis and legs while simulating the arms,
 hands, waist and free book. It carries the book but does not yet meet the tight
 tracking gate. Read the [measured results and SONIC discussion](../docs/correction/SUPPORTED_G1.md).

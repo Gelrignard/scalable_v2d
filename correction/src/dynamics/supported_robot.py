@@ -1,8 +1,9 @@
-"""G1/Dex3 manipulation physics with an explicitly fixed lower body.
+"""G1/Dex3 manipulation physics with an externally supported lower body.
 
 Root and leg transforms are frozen in the model, not stabilized by forces.
 The arms, hands, optional waist, and free book remain dynamic. This is a
-supported manipulation bench, not a locomotion controller.
+supported manipulation bench, not a locomotion controller. An optional mocap
+weld moves the pelvis along the reference while disabling frozen leg contacts.
 """
 import xml.etree.ElementTree as ET
 import numpy as np
@@ -13,8 +14,10 @@ from .robot_scene import RobotScene, numbers
 
 
 class SupportedRobotScene(RobotScene):
-    def __init__(self, kin, bounds, support_path, fixed_q, *, mass=1., friction=.6, dt=.001, move_waist=False):
-        super().__init__(kin, bounds, support_path, mass=mass, friction=friction)
+    def __init__(self, kin, bounds, support_path, fixed_q, *, mass=1., friction=.6, dt=.001,
+                 move_waist=False, moving_fixture=False, object_parts=None, floor_z=0.):
+        super().__init__(kin, bounds, support_path, mass=mass, friction=friction, object_parts=object_parts, floor_z=floor_z)
+        self.moving_fixture = moving_fixture
         self.fixed_q = np.array(fixed_q).copy()
         self.move_waist = move_waist
         self.movable = np.array([i for i, n in enumerate(kin.joint_names)
@@ -22,7 +25,21 @@ class SupportedRobotScene(RobotScene):
         xml = ET.fromstring(self.xml)
         world = xml.find('worldbody')
         pelvis = world.find('body')
-        pelvis.remove(pelvis.find('freejoint'))
+        if not moving_fixture:
+            pelvis.remove(pelvis.find('freejoint'))
+        else:
+            ET.SubElement(world, 'body', name='external_pelvis_fixture', mocap='true',
+                          pos=numbers(fixed_q[:3]), quat=numbers(fixed_q[[6,3,4,5]]))
+            equality = ET.SubElement(xml, 'equality')
+            ET.SubElement(equality, 'weld', name='pelvis_support', body1=pelvis.get('name'),
+                          body2='external_pelvis_fixture', relpose='0 0 0 1 0 0 0',
+                          solref='.002 1', solimp='.99 .999 .001')
+            # Legs are a passive visual fixture. Their contacts must not turn
+            # a prescribed walking path into an unintended balance experiment.
+            for body in pelvis.findall('body'):
+                if any(s in body.get('name', '') for s in ('hip', 'thigh')):
+                    for geom in body.iter('geom'):
+                        geom.set('contype', '0'); geom.set('conaffinity', '0')
         pelvis.set('pos', numbers(fixed_q[:3]))
         pelvis.set('quat', numbers(fixed_q[[6, 3, 4, 5]]))
         for body in world.iter('body'):
@@ -73,13 +90,22 @@ class SupportedRobotScene(RobotScene):
         self.book_v = int(self.model.joint('book_root').dofadr[0])
         self.book_body = self.model.body('book').id
         self.book_geom = self.model.geom('book_geom').id
-        self.floor_geom, self.table_geom = self.model.geom('floor').id, self.model.geom('table').id
-        self.environment = {self.floor_geom, self.table_geom}
+        self.object_geoms = set(np.flatnonzero(self.model.geom_bodyid == self.book_body))
+        self.floor_geom = self.model.geom('floor').id
+        self.table_geom = self.model.geom('table').id if self.table_radius else -1
+        self.environment = {g for g in (self.floor_geom,self.table_geom) if g >= 0}
+        if moving_fixture:
+            self.root_q = int(self.model.joint('robot_root').qposadr[0])
+            self.root_v = int(self.model.joint('robot_root').dofadr[0])
         self.tip_ids = np.array([self.model.site(n).id for n in TIP_NAMES])
         self.hand = np.array(['hand' in kin.joint_names[i] for i in self.movable])
         self.caps = np.minimum(kin.robot.model.effortLimit[6+self.movable], np.where(self.hand, .76, np.inf))
 
     def set_state(self, q, object_position, object_wxyz):
+        if self.moving_fixture:
+            self.data.qpos[self.root_q:self.root_q+7] = np.r_[q[:3],q[[6,3,4,5]]]
+            self.data.mocap_pos[0] = q[:3]
+            self.data.mocap_quat[0] = q[[6,3,4,5]]
         self.data.qpos[self.active_q] = q[7+self.movable]
         self.data.qpos[self.book_q:self.book_q+3] = object_position
         self.data.qpos[self.book_q+3:self.book_q+7] = object_wxyz
@@ -88,6 +114,9 @@ class SupportedRobotScene(RobotScene):
 
     def robot_q(self):
         q = self.fixed_q.copy()
+        if self.moving_fixture:
+            root = self.data.qpos[self.root_q:self.root_q+7]
+            q[:7] = np.r_[root[:3],root[[4,5,6,3]]]
         q[7+self.movable] = self.data.qpos[self.active_q]
         return q
 
@@ -108,10 +137,17 @@ class SupportedRobotScene(RobotScene):
         acceleration = spline(step_times, 2)
         desired_p = np.column_stack([np.interp(step_times, relative, positions[:, j]) for j in range(3)])
         desired_r = Slerp(relative, Rotation.from_quat(quaternions, scalar_first=True))(step_times).as_quat(scalar_first=True)
+        if self.moving_fixture:
+            fixture_p = CubicSpline(relative, q[:,:3])(step_times)
+            fixture_r = Slerp(relative, Rotation.from_quat(q[:,3:7]))(step_times).as_quat(scalar_first=True)
         force = np.zeros((len(step_times), 6, 3)) if force_ff is None else CubicSpline(relative, force_ff, axis=0)(step_times)
         mujoco.mj_resetData(self.model, self.data)
         self.set_state(q[0] if initial_q is None else initial_q, positions[0], quaternions[0])
         self.data.qvel[self.active_v] = velocities[0] if initial_velocity is None else initial_velocity
+        if self.moving_fixture:
+            self.data.qvel[self.root_v:self.root_v+3] = (q[1,:3]-q[0,:3])/(times[1]-times[0])
+            roots = Rotation.from_quat(q[:2,3:7])
+            self.data.qvel[self.root_v+3:self.root_v+6] = (roots[0].inv()*roots[1]).as_rotvec()/(times[1]-times[0])
         self.data.qvel[self.book_v:self.book_v+3] = (positions[1]-positions[0])/(times[1]-times[0])
         rot = Rotation.from_quat(quaternions[:2], scalar_first=True)
         self.data.qvel[self.book_v+3:self.book_v+6] = (rot[0].inv()*rot[1]).as_rotvec()/(times[1]-times[0])
@@ -156,8 +192,8 @@ class SupportedRobotScene(RobotScene):
                 contact_forces, contact_points = np.zeros((2,3)), np.zeros((2,3))
                 weights = np.zeros(2)
                 for ci,c in enumerate(self.data.contact):
-                    if self.book_geom not in (c.geom1,c.geom2): continue
-                    other = c.geom2 if c.geom1 == self.book_geom else c.geom1
+                    if not self.object_geoms.intersection((c.geom1,c.geom2)): continue
+                    other = c.geom2 if c.geom1 in self.object_geoms else c.geom1
                     name = self.model.geom(other).name
                     if 'left_' not in name and 'right_' not in name: continue
                     hand = 0 if 'left_' in name else 1
@@ -166,7 +202,7 @@ class SupportedRobotScene(RobotScene):
                     if np.linalg.norm(wrench[:3]) < 1e-5: continue
                     counts[hand] += 1
                     world_force = np.asarray(c.frame).reshape(3,3).T@wrench[:3]
-                    if c.geom1 == self.book_geom: world_force *= -1
+                    if c.geom1 in self.object_geoms: world_force *= -1
                     contact_forces[hand] += world_force
                     weight=np.linalg.norm(world_force)
                     contact_points[hand] += weight*c.pos
@@ -191,7 +227,13 @@ class SupportedRobotScene(RobotScene):
             saturated_steps += int(np.any(np.abs(raw)>self.caps))
             self.data.qfrc_applied[:] = 0
             self.data.qfrc_applied[self.active_v] = np.clip(raw, -self.caps, self.caps)
+            if self.moving_fixture:
+                self.data.mocap_pos[0] = fixture_p[min(step+1,end)]
+                self.data.mocap_quat[0] = fixture_r[min(step+1,end)]
             mujoco.mj_step(self.model, self.data)
+            if any(self.data.warning[int(kind)].number for kind in
+                   (mujoco.mjtWarning.mjWARN_BADQPOS, mujoco.mjtWarning.mjWARN_BADQVEL, mujoco.mjtWarning.mjWARN_BADQACC)):
+                raise RuntimeError(f'Unstable physics at step {step}; refusing a reset/stitched replay')
         outp, outr = np.asarray(outp), np.asarray(outr)
         return dict(q=np.asarray(outq), object_positions=outp, object_wxyz=outr, fk_tip_positions=np.asarray(outtip),
                     command_q=q, timestamps=times, torques=np.asarray(outtau),
@@ -204,4 +246,5 @@ class SupportedRobotScene(RobotScene):
                     torque_fraction_by_joint=max_fraction,
                     max_joint_velocity_rad_s=max_velocity, max_joint_limit_violation_rad=max_limit_violation,
                     saturation_steps=saturated_steps, torque_caps=self.caps, movable_joint_indices=self.movable,
-                    max_object_applied_force=max_external, fixed_root_and_legs=True, dynamic_waist=self.move_waist)
+                    max_object_applied_force=max_external, fixed_root_and_legs=not self.moving_fixture,
+                    moving_external_pelvis_fixture=self.moving_fixture, dynamic_waist=self.move_waist)

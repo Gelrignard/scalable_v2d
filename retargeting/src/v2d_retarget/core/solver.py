@@ -68,6 +68,16 @@ def solve_contact_aware(kin, motion, body, contacts, surface, cfg, progress=prin
                 safety_break=True,
             )
             kin.configuration.integrate_inplace(velocity, kin.dt)
+            # QP feasibility tolerances can leave a hinge a few microradians
+            # outside its bound, which Pink rejects on the next iteration.
+            # Project numerical residue only; substantial violations still fail.
+            bounded = kin.configuration.q.copy()
+            low, high = kin.robot.model.lowerPositionLimit[7:], kin.robot.model.upperPositionLimit[7:]
+            violation = np.maximum(low-bounded[7:], bounded[7:]-high)
+            if np.max(violation) > 1e-4:
+                raise ValueError(f"IK joint bound violation at frame {t}: {np.max(violation)} rad")
+            bounded[7:] = np.clip(bounded[7:], low, high)
+            kin.configuration.update(bounded)
             if (
                 iteration >= 4
                 and np.linalg.norm(velocity * kin.dt) < cfg["step_tolerance"]

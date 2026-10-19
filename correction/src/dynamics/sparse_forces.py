@@ -35,7 +35,7 @@ class ForceResult:
 
 
 def allocate_forces(points, inward, active, required, times, com, *, mu=.6,
-                    cap=15., time_limit=2., effort=1e-5, rate=1e-5):
+                    cap=15., time_limit=2., effort=1e-5, rate=1e-5, solver_tolerance=1e-7):
     """Solve a convex QP with conservative diamond friction cones.
 
 Inactive contacts have exactly zero force. Wrench residuals are penalized,
@@ -56,7 +56,8 @@ solution or numerical convergence is interpreted as manipulation success.
         raise ValueError('force problem must be finite')
     caps = np.broadcast_to(np.asarray(cap, float), (t, k))
     if (np.any(np.linalg.norm(inward, axis=-1) < 1e-9) or not np.isfinite(mu) or mu < 0
-            or not np.isfinite(caps).all() or np.any(caps <= 0) or time_limit <= 0):
+            or not np.isfinite(caps).all() or np.any(caps <= 0) or time_limit <= 0
+            or not np.isfinite(solver_tolerance) or solver_tolerance <= 0):
         raise ValueError('invalid normal, friction, force cap or time budget')
     scale = np.array([10., 10., 10., 1., 1., 1.])
     operators, cones, lower, upper = [], [], [], []
@@ -83,7 +84,7 @@ solution or numerical convergence is interpreted as manipulation success.
     problem.setup(P=sparse.triu(2*hessian, format='csc'),
                   q=-2*np.asarray(operator.T @ (required/scale).ravel()).ravel(),
                   A=constraints, l=np.asarray(lower), u=np.asarray(upper),
-                  verbose=False, eps_abs=1e-7, eps_rel=1e-7, max_iter=5000,
+                  verbose=False, eps_abs=solver_tolerance, eps_rel=solver_tolerance, max_iter=5000,
                   polishing=True, time_limit=max(.001, time_limit))
     solved = problem.solve(raise_error=False)
     ok = solved.info.status_val in (1, 2) and solved.x is not None and np.isfinite(solved.x).all()
