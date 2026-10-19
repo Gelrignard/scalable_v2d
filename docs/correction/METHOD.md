@@ -2,6 +2,15 @@
 
 **Method note and implementation audit — 12 October 2026**
 
+**G1 integration update, 19 October:** [Supported G1/Dex3 physics](SUPPORTED_G1.md)
+adds real robot collision geometry, inertia, joint limits and torque-limited
+upper-body dynamics with a fixed pelvis and legs. The book is carried through
+frames 520–565, retimed from 1.5 to 3 seconds. Correction reduces maximum
+orientation error from 19.68 to 10.52 degrees. The result remains outside the
+10 mm / 5 degree tracking gate, saturates some actuators, and moves hand sites
+up to 123 mm from the human reference. It is an integration experiment, not
+a validated demonstration-preserving reference or a trained policy.
+
 **Latest manipulation-only experiment, 19 October:** see
 [Supported EEF manipulation](SUPPORTED_MANIPULATION.md). A freely simulated
 book is carried by six force-limited contact pads, isolating the contact

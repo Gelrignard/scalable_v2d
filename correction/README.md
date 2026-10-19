@@ -6,7 +6,17 @@ outside this module.
 
 ## Supported manipulation demo
 
-The current manipulation experiment removes locomotion and arm IK from the
+The **G1/Dex3 integration** fixes the pelvis and legs while simulating the arms,
+hands, waist and free book. It carries the book but does not yet meet the tight
+tracking gate. Read the [measured results and SONIC discussion](../docs/correction/SUPPORTED_G1.md).
+
+```text
+python -m correction.scripts.supported_robot --verify
+python -m correction.scripts.view_supported_robot --port 8084
+```
+
+This experiment needs the optional G1/Pinocchio runtime used by retargeting and
+the CPU MuJoCo dependencies. The earlier, reduced manipulation experiment removes locomotion and arm IK from the
 physics test. Six force-limited spherical fingertips carry a freely simulated
 book using corrected contact commands. It does **not** claim a feasible G1 hand
 configuration. See the [method, results, and limits](../docs/correction/SUPPORTED_MANIPULATION.md).

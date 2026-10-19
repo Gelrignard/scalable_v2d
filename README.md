@@ -7,6 +7,7 @@ The research question is whether this preprocessing reduces the GPU time and env
 ## Start here
 
 - [Method and mathematical derivation](docs/correction/METHOD.md)
+- [G1/Dex3 supported physics: robot integration, errors, and SONIC's role](docs/correction/SUPPORTED_G1.md)
 - [Supported EEF demo: measured contact dynamics and scope](docs/correction/SUPPORTED_MANIPULATION.md)
 - [Bounded correction: implementation, runtime and remaining failures](docs/correction/BOUNDED_CORRECTION.md)
 - [CPU setup and reproduction](docs/SETUP.md)
@@ -21,11 +22,11 @@ The research question is whether this preprocessing reduces the GPU time and env
 |---|---|
 | [Contact-aware retargeting](retargeting/README.md) | CPU body/hand IK, explicit contact targets, canonical input, diagnostics, viewers, and reference export |
 | [Dynamics-guided correction](correction/README.md) | Object inverse dynamics, sparse force allocation, bounded contact hypotheses, temporal robot refinement, collision checks, and diagnostic CPU rollouts |
-| Tier 1 demonstration | A supported six-fingertip model tracks a book manipulation through contact dynamics; full G1 execution remains unvalidated |
+| Tier 1 demonstration | Supported G1/Dex3 carries a free book with fixed pelvis/legs; correction improves tracking but misses the 10 mm / 5 degree gate. Six-pad experiment passes its separate reduced-model checks |
 | Tier 2 policy comparison | Planned; general episode/noisy-input support and the trainer remain to be implemented |
 | Tier 3 reconstruction | Planned; no integrated video-to-motion reconstruction pipeline yet |
 
-Kinematic playback is not physical simulation. The [supported EEF experiment](docs/correction/SUPPORTED_MANIPULATION.md) isolates manipulation from walking and passes its reduced-model physical checks. The earlier full-G1 reference failed physical replay. No trained policy, full-robot execution certificate, or leaderboard result is included.
+Kinematic playback is not physical simulation. The [supported G1 experiment](docs/correction/SUPPORTED_G1.md) uses actual arm/hand/waist dynamics and torque-limited control with a fixed pelvis and legs. It demonstrates book carrying, but remaining tracking errors, torque saturation and contact changes prevent certification as a training reference. The [six-pad experiment](docs/correction/SUPPORTED_MANIPULATION.md) passes its separate reduced-model checks. No trained policy, unsupported whole-body execution certificate, or leaderboard result is included.
 
 ## Optional NVIDIA dependency
 

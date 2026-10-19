@@ -1,9 +1,10 @@
-"""Write the existing NPZ/JSON robot-reference contract for the training adapter.
+"""Export robot references and supported physics experiments.
 
-These are reference trajectories, not simulator rollouts or a trained policy.
-Scene integration and the trainer's motion_v1 adapter remain training work.
+Neither export certifies that the reference is ready for policy training.
 """
 import json
+from pathlib import Path
+import numpy as np
 
 
 def save_robot_reference(directory, result, label="dynamics_guided"):
@@ -16,3 +17,13 @@ def save_robot_reference(directory, result, label="dynamics_guided"):
                        result.config, result.metrics, result.diagnostics)
     (directory / "robot_repair_metrics.json").write_text(json.dumps(result.metrics, indent=2))
     return path
+
+
+def save_robot_experiment(directory,report,records,interface,xml):
+    directory=Path(directory)
+    directory.mkdir(parents=True,exist_ok=True)
+    for name,data in records.items():
+        np.savez_compressed(directory/f'{name}.npz',**data)
+    np.savez_compressed(directory/'reference.npz',**interface)
+    (directory/'scene.xml').write_text(xml,encoding='utf-8')
+    (directory/'report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')

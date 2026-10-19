@@ -1,5 +1,9 @@
 # Supported EEF manipulation: what the current demo establishes
 
+For the subsequent experiment using G1 arms and real Dex3 hand geometry, see
+[Supported G1/Dex3 physics](SUPPORTED_G1.md). The results below apply only to
+the six independent spherical pads and should not be transferred to the robot.
+
 19 October 2026. This experiment answers a narrower, testable question:
 **can demonstration-guided contact commands produce the desired object motion
 through actual contact dynamics, without walking or balance getting in the way?**
