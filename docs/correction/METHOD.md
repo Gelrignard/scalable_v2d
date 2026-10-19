@@ -2,6 +2,12 @@
 
 **Method note and implementation audit — 12 October 2026**
 
+**Implementation update, 19 October:** the [bounded correction experiment](BOUNDED_CORRECTION.md)
+adds sparse force checks, contact alternatives, temporal constraints, full-scene
+collision diagnostics and CPU physical replay. It processed frames 400–600
+within a 120-second correction budget, but failed physical acceptance. The
+derivation and short-phase results below describe the earlier implementation.
+
 **Operational update, 17 October:** see [COMPUTE_AND_IMPLEMENTATION_HANDOFF.md](../COMPUTE_AND_IMPLEMENTATION_HANDOFF.md) for the quoted 4090 server budget, reconstruction requirements, current submission-kit contract, and work packages for the next implementation agent. The method results below remain the 12 October trial.
 
 **Research question.** Can a small, CPU-based mechanics optimization repair the contact inconsistencies in a retargeted human demonstration sufficiently to reduce the total compute needed to learn a successful robot policy?

@@ -7,6 +7,7 @@ The research question is whether this preprocessing reduces the GPU time and env
 ## Start here
 
 - [Method and mathematical derivation](docs/correction/METHOD.md)
+- [Bounded correction: implementation, runtime and remaining failures](docs/correction/BOUNDED_CORRECTION.md)
 - [CPU setup and reproduction](docs/SETUP.md)
 - [Compute, challenge requirements, and implementation handoff](docs/COMPUTE_AND_IMPLEMENTATION_HANDOFF.md)
 - [Parallel branches and agent ownership](docs/PARALLEL_WORK.md)
@@ -18,7 +19,7 @@ The research question is whether this preprocessing reduces the GPU time and env
 | Component | Status |
 |---|---|
 | [Contact-aware retargeting](retargeting/README.md) | CPU body/hand IK, explicit contact targets, canonical input, diagnostics, viewers, and reference export |
-| [Dynamics-guided correction](correction/README.md) | Object inverse dynamics, contact-force optimization, local robot trajectory repair, and independent checks of the resulting geometry |
+| [Dynamics-guided correction](correction/README.md) | Object inverse dynamics, sparse force allocation, bounded contact hypotheses, temporal robot refinement, collision checks, and diagnostic CPU rollouts |
 | Tier 1 demonstration | One short book phase exercised end to end; its physical audit still reports failures |
 | Tier 2 policy comparison | Planned; general episode/noisy-input support and the trainer remain to be implemented |
 | Tier 3 reconstruction | Planned; no integrated video-to-motion reconstruction pipeline yet |

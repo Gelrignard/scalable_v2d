@@ -55,6 +55,26 @@ machine-specific convenience launchers are not part of the public repository.
 
 ## Output and scope
 
+The new **bounded book experiment** uses sparse force allocation, a small
+beam of contact-face/pinch hypotheses, overlapping robot SQP windows, explicit
+velocity/acceleration limits, URDF/table/self-collision checks, and optional
+CPU physical rollouts. It writes a separate candidate reference and never
+overwrites the original retargeting output. See the
+[bounded method, commands, measurements and failures](../docs/correction/BOUNDED_CORRECTION.md).
+
+```text
+python -m pip install -r correction/requirements.txt
+python -m pip install -r setup/correction-simulation-requirements.txt
+python -m correction.scripts.bounded_book --start 400 --stop 601 --budget 120 --rollout
+python -m correction.scripts.view_bounded --port 8083
+```
+
+This trial requires the optional G1 CPU runtime described in setup. Its local
+MuJoCo scene is a diagnostic, not the official challenge simulator. The first
+full-interval trial met the correction runtime budget but **failed physical
+acceptance**. Smoother joints and reduced penetration did not establish a
+usable manipulation.
+
 `pass_traj` preserves the existing `dynamics_guided.npz` / `.json` robot-reference
 schema. The training agent still needs to add the simulator scene and training
 adapter. These artifacts are references, not a trained policy or a physical

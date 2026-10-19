@@ -1,0 +1,2 @@
+# Optional CPU collision checks and diagnostic physical replay for correction.
+mujoco==3.16.0
