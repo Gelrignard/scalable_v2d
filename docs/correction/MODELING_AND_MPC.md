@@ -93,3 +93,51 @@ If this bounded coupled test fails, preserve the staged checkpoint and report
 the failure before deciding whether to add measured-state feedback to the
 staged trajectory optimization. Do not describe unsuccessful trials as a
 working replacement.
+
+## Implemented first test
+
+`correction/src/optimization/contact_mpc.py` uses eight parameters per solve:
+world translation offsets for each palm (six), and multiplicative changes to
+each hand's nominal force guidance (two). A damped palm Jacobian maps translation
+offsets into an arm joint-offset basis at the current state. It does not solve
+another IK optimization inside the MPC.
+
+The limits in this initial experiment are 20 mm per translation coordinate,
+0.15 rad joint offset, and force scales between 0.5 and 1.5. A quintic command
+offset matches position, velocity and acceleration from the preceding command
+segment; delta actions alone would not provide that continuity.
+
+The default horizon is 0.75 seconds with a 0.5-second executed prefix. The
+bounded search evaluates a previous-target candidate, a return-to-reference
+candidate, and six seeded perturbations when the reference anticipates hand
+forces. This is a small shooting search, **not a converged nonlinear-program
+solution**. Its inability to improve an episode would not prove that MPC in
+general cannot work.
+
+The previous endpoint is projected into the new local palm basis; this does not
+guarantee a feasible shifted solution. Candidates violating the joint-offset
+bound are rejected. If all candidates fail, the experiment stops and reports a
+failure rather than silently resetting execution or switching controllers.
+
+Prediction copies MuJoCo integration state and the contact controller's filter,
+correction, engagement and command-offset memory. The shared
+`correction/src/dynamics/execution_step.py` computes requested torque in both
+prediction and execution. Actual applied torque is clipped identically.
+The live simulator is never reset by the optimizer; predicted branches are
+discarded. Each executed prefix is checked against the selected prediction.
+
+The objective normalizes object translation error by 30 mm and rotation error
+by 0.15 rad. It adds penalties for physical joint-limit violation, requested
+torque beyond saturation, penetration beyond 2 mm, command deviation and
+command-velocity changes. Final horizon error has weight three. These scales
+are declared initial choices, not learned or validated universal weights.
+Contact forces are simulator outcomes, and force guidance is a robot actuator
+command, not a direct force applied to the object. Torque clipping and simulator
+contact laws are enforced; the other penalty terms are not hard feasibility
+certificates.
+
+The fixed grasp schedule and demonstration object target remain restrictions.
+This experiment does not infer new contact phases, estimate object inertia,
+fit uncertain Tier 2/3 observations, run a whole-body walking controller, or
+measure reinforcement-learning savings. Full-episode outputs and provenance are
+stored locally under `correction/outputs/mpc_20261020/`.
