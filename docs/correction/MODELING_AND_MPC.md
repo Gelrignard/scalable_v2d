@@ -141,3 +141,96 @@ This experiment does not infer new contact phases, estimate object inertia,
 fit uncertain Tier 2/3 observations, run a whole-body walking controller, or
 measure reinforcement-learning savings. Full-episode outputs and provenance are
 stored locally under `correction/outputs/mpc_20261020/`.
+
+## Reading the bin example: what changes, and what does not
+
+Use the second bin manipulation as the example. The demonstration supplies a
+desired object pose sequence $T_k^\star=(R_k^\star,p_k^\star)$ and a retargeted
+robot posture sequence $q_k^{\mathrm{human}}$. Neither is a measured future
+outcome of our simulator.
+
+The retained staged method first selects plausible object/robot surface
+patches near the demonstrated grasp. If $c_i$ is a selected point expressed in
+the object frame, its nominal world target is
+
+$$
+x_{i,k}^{\mathrm{target}}=p_k^\star+R_k^\star c_i.
+$$
+
+IK constructs a robot hand path near those targets while preferring the
+retargeted posture. A force allocation stage searches for friction-constrained
+loads that approximately balance the object wrench and respect its actuator
+model. Command refinement then constructs a smooth robot command. These are
+stages with different decision variables and rejection gates, not one joint
+optimization. The bin also has a saved two-phase contact sequence; it is not an
+automatic solution to arbitrary contact-mode discovery.
+
+The resulting plan consists of robot commands $\bar q_k$ (and their
+derivatives), force guides $\bar f_{i,k}$, and contact activity/patch references.
+At execution, joint PD and contact-force feedback generate bounded robot
+torques. The physical object moves only through actual contacts. Thus even
+the staged controller has local feedback, but its task-level plan is fixed:
+it does not re-optimize the next grasp when the object deviates.
+
+For example, at frame 645 of the experimental MPC rollout the bin is about
+90 mm and 5.9 degrees from its intended pose. A contact target computed from
+$T_k^\star$ can now differ substantially from the actual surface. This is a
+recorded deviation, not a proposed 90-mm palm adjustment: the tested MPC bounds
+each palm translation coordinate to 20 mm.
+
+At that instant the MPC copies the actual robot/object pose, velocities and
+controller memory. It tests small smooth modifications to $\bar q$ and
+$\bar f$ for the next 0.75 seconds. A hypothetical candidate could shift a
+palm by 5 mm and scale that hand's force guide by 1.1. The simulator must
+predict whether the actual fingers touch, what force results after torque
+clipping, and whether the resulting bin motion approaches $T^\star$.
+Increasing a force guide does not ensure any object force is delivered.
+
+All candidate scores use the same desired future object path. Only the first
+0.5 seconds of the selected command is executed; then the prediction starts
+from the new actual state. Both robot dynamics and object dynamics participate
+in each prediction. The pelvis still follows an externally supported recorded
+path; this is not walking control.
+
+| Quantity | Staged execution | Experimental MPC |
+| --- | --- | --- |
+| Desired object motion | Demonstration reference | Same reference; not replaced by current motion |
+| Future robot/force-guide commands | Saved offline schedule | Smooth bounded changes selected from current state |
+| Initial state of each future prediction | No online task prediction | Current robot/object state and controller memory |
+| Future object motion/contact loads | Outcomes of the executed physics | Candidate physics predictions, then actual execution |
+| Contact phases, finger shapes and selected patches | Saved staged plan | Still restricted by that plan |
+| Low-level joint/contact controller | Joint PD, compensation, force feedback and torque caps | Same controller inside prediction and execution |
+
+Consequently this implementation replaces **open-loop selection of the next
+task-command segment**, not the whole offline correction pipeline. Within each
+MPC solve, future contact forces emerge from coupled simulation instead of a
+separate future wrench QP. It does not optimize new grasp phases or independent
+finger motions.
+
+## Current result and viewer checkpoint
+
+The first full-episode restricted MPC test is rejected: bin position RMS rises
+from 48.48 mm for the retained staged method to 190.32 mm, and orientation RMS
+from 5.91 to 37.31 degrees. The first grasp improves, but the second loses
+contact and the object tips. Prediction and execution match exactly in this
+deterministic simulator; that check does not make the selected motion good.
+The active run takes 670.84 seconds of local CPU wall time, with 247 candidate
+evaluations. There is no demonstrated learning-cost reduction.
+
+See the local [MPC experiment report](../../correction/outputs/mpc_20261020/REPORT.md)
+for failures and torque decomposition. Excessive PD torque demand, short
+lookahead across release/reacquisition, and the restricted candidate search
+remain concerns. No single causal explanation has been isolated.
+
+The viewer on port 8087 shows the staged method only. Its bin entry retains
+the original saved reference, whose complete physical replay under current
+execution code is bitwise identical. Its desk/stroller entries now expose the
+new modeling-fix trials as **rejected pre-spline diagnostics**, together with
+matching independent-pad runs. These failed trajectories are visible for
+inspection, not promoted into training export. Raw reports are preserved.
+
+The precise status is: **identified modeling inconsistencies were corrected;
+general geometric/contact feasibility is still unresolved; MPC is experimental
+and its first tested variant failed.** The new planning fixes did not regenerate
+or improve the saved bin trajectory. Their effect was tested on the additional
+episodes, where contact and smoothness checks still fail.

@@ -112,14 +112,17 @@ class CatalogViewer:
                 self.frame.max=state['count']-1; self.frame.value=0
                 diagnostic=state['report'].get('diagnostic_fallback')
                 selection=state['report'].get('selected_candidate')
+                entry=state['entry']
+                limitations=entry.get('display_limitations',state['report'].get('limitations',[]))
                 self.details.content=('**Entire recorded episode.** Original and method start from the same pre-approach state. '
                     'Object and upper robot joints have physical dynamics and finite actuators; pelvis is externally supported. '
                     'No object assistance or phase resets. Walking and balance are not simulated.\\n\\n'
                     'World trajectories remain fixed. Display panels use constant Y offsets of -0.8/+0.8 m.\\n\\n'
                     'Independent pads are a separate Cartesian-actuator experiment; they are not articulated robot execution.\\n\\n'
+                    f'**Run provenance:** {entry.get("model_notes", "See saved experiment report.")}\\n\\n'
                     f'**Stage status:** {diagnostic or "Saved staged reference; physical acceptance remains separate."}\\n\\n'
                     f'**Contact selection:** {selection or "Preserved bin contact sequence."}\\n\\n'+
-                    '\\n\\n'.join(state['report'].get('limitations',[]))).replace('\\n','\n')
+                    '\\n\\n'.join(limitations)).replace('\\n','\n')
             self.loading=False
             self.update(); self.focus()
 
@@ -182,7 +185,8 @@ class CatalogViewer:
                     handle.position,handle.wxyz=ref['object_positions'][j],ref['object_wxyz'][j]
                 error.points=np.array([[data['object_positions'][j],ref['object_positions'][j]]],np.float32)
                 label.position=(ref['object_positions'][j]+[0,0,.6] if pad else data['q'][j,:3]+[0,0,.85])
-                label.text='ORIGINAL RETARGETING' if i==0 else 'OUR METHOD · diagnostic candidate'
+                label.text=('ORIGINAL RETARGETING' if i==0 else
+                            s['entry'].get('method_label','OUR METHOD · diagnostic candidate'))
                 lines.append(f'**{"Original" if i==0 else "Our method"}**: error {1000*data["position_error"][j]:.1f} mm; '
                              f'whole-episode RMS **{summary["rms_position_error_mm"]:.1f} mm**.')
             accepted=(s['pad_report']['cases']['corrected']['accepted_tracking'] if pad else
