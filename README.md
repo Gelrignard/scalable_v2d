@@ -74,3 +74,6 @@ Datasets, model weights, Python environments, checkpoints, generated outputs, an
 The two development branches are `work/tier2-rl` and `work/tier3-reconstruction`. Use a separate worktree for each agent. Keep the same downstream learner and compute budget across the NVIDIA body baseline, our retargeting, and our retargeting plus correction.
 
 See [third-party notices](docs/THIRD_PARTY_NOTICES.md) before redistributing upstream source or assets.
+- [Preserved 20 October result and overnight report](docs/correction/OVERNIGHT_REPORT_2026-10-20.md)
+- [Correction to whole-body control: milestone 7.5](docs/correction/WHOLE_BODY_HANDOFF.md)
+- [Recover the saved bin comparison](correction/examples/bin_checkpoint_20261020/README.md)

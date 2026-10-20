@@ -8,7 +8,9 @@
 | [Correction architecture](correction/ARCHITECTURE.md) | Stage boundaries, file map, and command migration |
 | [Method](correction/METHOD.md) | Mathematical derivation and research claims |
 | [Research review, 19 October](correction/RESEARCH_REVIEW_2026-10-19.md) | Current challenge requirements, implementation audit, revised milestones, and delta-action analysis |
-| [Overnight implementation report, 20 October](correction/OVERNIGHT_REPORT_2026-10-20.md) | Physical results, costs, failures and remaining work; checkpoint until morning |
+| [Overnight implementation report, 20 October](correction/OVERNIGHT_REPORT_2026-10-20.md) | Final morning physical results, costs, failures and remaining work |
+| [Whole-body controller handoff, M7.5](correction/WHOLE_BODY_HANDOFF.md) | What changed overnight, existing robot dynamics, SONIC interface and pre-RL compatibility checks |
+| [Additional full episodes, 20 October](correction/TRANSFER_EPISODES_2026-10-20.md) | Desk/stroller transfer failures, full comparisons, costs and one-server viewer catalog |
 | [Overnight implementation log](correction/OVERNIGHT_LOG_2026-10-20.md) | Detailed experiment history and continuation instructions |
 | [Contact sequences and command dynamics](correction/SEQUENCE_CORRECTION.md) | Phase/controller contract, regrasping, continuous transitions and the bounded command QP |
 | [Literature review](LITERATURE_REVIEW.md) | Research positioning, novelty risks, proposed directions, and evaluation design |

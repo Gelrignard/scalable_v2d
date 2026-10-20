@@ -282,12 +282,18 @@ These are the complete milestones, not a promise that all fit the remaining chal
 | **M5: controller-aware correction** | Compare compact forward-simulation search with mechanics-guided search under the same budget. | Better delivered object motion and valid complete commands; all search/build/replay time counted. |
 | **M6: feedback robustness and recovery** | Extend the controller already used in M4–M5 to handle deviations, saturation and separation while preserving task progress. | Small declared perturbation tests; no concealed reset or oracle correction. |
 | **M7: complete bin episode** | Carry the physical state through every phase. | Full uninterrupted original-versus-method comparison, intended trajectory visible, no assistance. Both robot and pad diagnostics remain clearly labeled. |
+| **M7.5: whole-body controller compatibility** | Replay original/corrected references through the actual pretrained SONIC/action interface; remove the fixture, restore feet, measure delivered contact and saturation. Joint boundary owned by either correction or training agent. | Explicit joint/control ownership, complete unassisted zero-residual replay, separate planned/measured forces, failure feedback into correction. See [handoff](WHOLE_BODY_HANDOFF.md). |
 | **M8: batch/generalization cost** | Freeze settings, then test several episodes and input qualities. | Success/failure coverage, per-episode cost distribution, p90 cost and manual interventions. |
 | **M9: policy-cost experiment** | Same learner, matched controller and training budget; compare references and controller ablations. | Cost to the same tracking threshold, learning curves and paired seeds. **Start a small pilot after a useful M4/M5 improvement, in parallel with M6–M8.** |
 | **M10: Tier 3 uncertainty** | Integrate reconstruction outputs and quantify geometry/pose uncertainty. | Correct schema/world frame; no prohibited Tier 1 information; reconstruction cost included. Preparation can proceed in parallel. |
 | **M11: official whole-body evaluation** | Integrate the chosen reference/control outputs with learned policy and whole-body controller; pack each tier. | All required executed trajectories pass official validation and metrics. Supported-pelvis results do not substitute for this. |
 
 M3 is a screening step, not a claim that static feasibility proves dynamic execution. If M2 cannot find a plausible approach, adding a larger force NLP is unlikely to help. If M5 does not beat the compact simulation baseline, reduce model complexity or change the hypothesis rather than accumulating more penalties.
+
+**20 October ownership update:** the user assigns M8–M11 to another agent.
+This chat retains correction and the M7.5 interface handoff, plus the two or
+three additional exploratory episode comparisons explicitly requested.
+Those comparisons are not a completed generalization or policy-cost benchmark.
 
 ## 10. Experiments that would establish or reject the contribution
 

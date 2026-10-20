@@ -4,6 +4,19 @@ Refine a retargeted manipulation reference using object dynamics, contact-force
 optimization, and local arm/hand trajectory optimization. Dataset decoding is
 outside this module.
 
+The current [three-episode catalog](../docs/correction/TRANSFER_EPISODES_2026-10-20.md)
+keeps the preserved bin result and adds full desk/stroller diagnostics on the
+same port, with exactly two channels per episode:
+
+```text
+python -m correction.scripts.view_episode_catalog --catalog experiments/correction_transfer_20261020.json --port 8087
+```
+
+The new transfers fail planning and physical acceptance and are labeled
+accordingly. The [whole-body controller handoff](../docs/correction/WHOLE_BODY_HANDOFF.md)
+explains what robot dynamics are already simulated and defines milestone 7.5
+before downstream policy training.
+
 The current preview compares **original retargeting versus our method** over a
 complete episode, with intended object motion always visible in orange beside
 the simulated objects. Its **Channel** selector switches between **Robot

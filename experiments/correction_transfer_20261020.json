@@ -1,0 +1,20 @@
+{
+  "scope": "Preserved bin plus two exploratory full-episode transfers; no accepted reference or learning-cost claim",
+  "episodes": [
+    {
+      "name": "18 - Blue bin - preserved result",
+      "directory": "correction/outputs/overnight_20261020/rest_matched_v1",
+      "support_directory": "correction/outputs/overnight_20261020/rest_support_v1"
+    },
+    {
+      "name": "10 - Desk - rejected transfer diagnostic",
+      "directory": "correction/outputs/transfer_20261020/episode_000010_v1",
+      "support_directory": "correction/outputs/transfer_20261020/episode_000010_support_v1"
+    },
+    {
+      "name": "23 - Stroller - rejected transfer diagnostic",
+      "directory": "correction/outputs/transfer_20261020/episode_000023_v1",
+      "support_directory": "correction/outputs/transfer_20261020/episode_000023_support_v1"
+    }
+  ]
+}
