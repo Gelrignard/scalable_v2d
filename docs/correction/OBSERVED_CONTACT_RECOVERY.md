@@ -4,6 +4,8 @@
 manipulation result. It preserves the retained staged method and its data.
 The current outcome and limitations are recorded in [MODELING_AND_MPC.md](MODELING_AND_MPC.md)
 and the local [experiment report](../../correction/outputs/contact_recovery_20261020/REPORT.md).
+The later [diagnosis and proposed next method](MPC_DIAGNOSIS_AND_NEXT_METHOD_2026-10-20.md)
+adds frozen-state force-feasibility checks and the separate current-MPC viewer.
 
 ## What changes when the bin is somewhere unexpected?
 

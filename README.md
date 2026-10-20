@@ -78,3 +78,4 @@ See [third-party notices](docs/THIRD_PARTY_NOTICES.md) before redistributing ups
 - [Correction to whole-body control: milestone 7.5](docs/correction/WHOLE_BODY_HANDOFF.md)
 - [Recover the saved bin comparison](correction/examples/bin_checkpoint_20261020/README.md)
 - [Observed-state contact recovery: implementation, equations and limitations](docs/correction/OBSERVED_CONTACT_RECOVERY.md)
+- [Current MPC diagnosis, frozen-state checks and proposed next method](docs/correction/MPC_DIAGNOSIS_AND_NEXT_METHOD_2026-10-20.md)

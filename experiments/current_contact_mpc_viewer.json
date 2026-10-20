@@ -1,0 +1,20 @@
+{
+  "scope": "Saved full-episode replay of current staged observed-state receding-horizon controller; rejected diagnostic, separate from preserved best viewer",
+  "episodes": [
+    {
+      "name": "18 - Blue bin - current feedback MPC v6",
+      "directory": "correction/outputs/contact_recovery_20261020/nominal_v6",
+      "original_directory": "correction/outputs/overnight_20261020/rest_matched_v1",
+      "method_label": "CURRENT FEEDBACK MPC · v6 · REJECTED",
+      "rejected": true,
+      "stage_status": "Observed-state geometry/force proposals plus physical lookahead; not a single joint nonlinear trajectory optimization. 858 frames, 28.57 seconds, 191 replans, no object assistance or resets.",
+      "model_notes": "Latest completed nominal_v6, implementation checkpoint 9fc4b3e and saved source snapshot. Replan every 0.15 s with 0.45 s physical prediction. Robot/object state is observed during simulation; this viewer replays the saved result. Original retargeting is read from the preserved comparison without copying or altering it.",
+      "display_limitations": [
+        "Physical acceptance fails: object RMS 391.97 mm / 69.59 degrees; requested torque peaks at 2.198 times capacity.",
+        "Robot upper body and object are dynamic; pelvis follows the externally supported recorded path. Walking/balance are not simulated.",
+        "The new controller is not the preserved 48.48 mm result, which remains on port 8087.",
+        "Source mesh is displayed; actual collision geometry is convex pieces. Full physical-model accuracy remains unverified."
+      ]
+    }
+  ]
+}
