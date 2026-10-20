@@ -51,10 +51,15 @@ def run(args):
         physics=physics, controller=asdict(config), kp_hand=2., inertia_ff_scale=1.,
         source=str(args.source.resolve()), scope='Single-interval transfer of staged bin prototype',
         object_assistance=False, resets_during_episode=0, ready_for_training=False, cases={},
+        scene_registration=dict(floor_z_m=float(old_ref['floor_z']),
+            recorded_world_ground_z_m=0.,
+            source='Inherited shared initial-registration offset; no new floor fitting',
+            desired_object_trajectory_changed=False,
+            limitation='The registered floor and source mesh are not an exact observation-consistent scene'),
         configuration={k:str(v) if isinstance(v, Path) else v for k,v in vars(args).items()},
         limitations=['Single rigid object; stroller wheels are not articulated',
           'One fixed grasp; no outcome-fitted phase/contact selection',
-          'Quasistatic hand-force profile does not optimize sliding/rolling environment forces',
+          'Quasistatic hand/environment balance; no object acceleration tracking or articulated rolling',
           'Supported pelvis; perfect Tier1 object reference; no learned whole-body controller'],
         source_sha256=hashlib.sha256((args.source/'retargeted/contact_aware.npz').read_bytes()).hexdigest(),
         provenance=snapshot_sources(args.output, [Path(__file__), *[
@@ -62,7 +67,7 @@ def run(args):
             'optimization/surface_hypotheses.py','optimization/patch_geometry.py',
             'optimization/strategy_screen.py','optimization/surface_reference.py',
             'optimization/rigid_grasp.py','optimization/actuator_force_profile.py',
-            'optimization/command_smoothing.py','dynamics/supported_robot.py',
+            'optimization/command_smoothing.py','dynamics/environment_contact.py','dynamics/supported_robot.py',
             'dynamics/contact_controller.py']]]))
     def save():
         report['wall_seconds'] = perf_counter()-started
@@ -123,13 +128,16 @@ def run(args):
         save()
         force = np.asarray(selected['static_hold_screen']['forces'])[:len(points)]
         command, geometry = build_reference(scene, raw, points, grasp_q, force, selected['frame'],
-            approach=True, rigid_grasp=True, release=True, phase=phase)
+            approach=True, rigid_grasp=True, release=True, phase=phase, continuous_ik=True)
         report['construction'] = geometry
         blend = smoothstep((np.arange(len(raw['q']))-phase.contact_start)/(phase.force_full-phase.contact_start))
         blend *= smoothstep((phase.force_end-np.arange(len(raw['q'])))/(phase.force_end-phase.contact_end))
         try:
             command['force_ff'], report['force_profile'] = allocate_profile(scene,points,command['q'],
-                raw['object_positions'],raw['object_wxyz'],command['timestamps'],blend,friction=.8,preload=2.)
+                raw['object_positions'],raw['object_wxyz'],command['timestamps'],blend,friction=.8,preload=2.,
+                include_environment=True)
+            environment_plan=report['force_profile'].pop('environment_plan')
+            command.update({f'environment_{k}':v for k,v in environment_plan.items()})
         except ValueError as error:
             command['force_ff'][:] = 0.
             report['force_profile'] = dict(solved=False,error=str(error),
@@ -157,9 +165,12 @@ def run(args):
             report.update(status='rejected_before_replay',accepted=False,
                 diagnostic_fallback='Planning gates failed; explicit --replay-rejected needed for diagnostic physics')
             return
-        # Same physical initialization for both branches, with exact visible frame0.
-        command['q'][0]=command['initial_q']
-        command['command_velocity'][0]=0.
+        # A successful spline already has its exact initial state constraints.
+        # Do not edit one sample afterward and invalidate the continuous curve.
+        if fitted is not None:
+            np.testing.assert_allclose(command['q'][0,7+scene.movable],
+                                       command['initial_q'][7+scene.movable],atol=1e-5)
+            np.testing.assert_allclose(command['command_velocity'][0],0.,atol=1e-5)
         np.savez_compressed(args.output/'reference.npz',**command)
         report['status']='replaying'; save()
         initial=None

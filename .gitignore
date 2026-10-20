@@ -32,6 +32,12 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
+# Local experiment runners and generated test reports are not public source.
+# Reusable src/, scripts/, and tests/ remain versioned.
+/correction/local_experiments/
+/experiments/local/
+/test-results/
+
 # Machine-specific convenience launchers are local, not public entry points.
 /retarget.ps1
 /correction/scripts/run.ps1

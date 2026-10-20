@@ -25,7 +25,7 @@ class RigidGrasp:
         self.outward/=np.linalg.norm(self.outward,axis=1)[:,None]
 
     def solve(self,nominal,position,wxyz,previous,*,clearance=0.,lift=0.,seconds=.3,
-              palm_targets=None, finger_q=None, arm_neighborhood=.9):
+              palm_targets=None, finger_q=None, arm_neighborhood=.9, step_dt=None):
         s=self.scene; start=perf_counter(); q=nominal.copy(); q[7+s.movable[s.hand]]=self.grasp[7+s.movable[s.hand]]
         if finger_q is not None:
             q[7+s.movable[s.hand]] = finger_q[7+s.movable[s.hand]]
@@ -38,6 +38,15 @@ class RigidGrasp:
             target_p, target_r = palm_targets
         lower=np.maximum(s.kin.robot.model.lowerPositionLimit[ids],nominal[ids]-arm_neighborhood)
         upper=np.minimum(s.kin.robot.model.upperPositionLimit[ids],nominal[ids]+arm_neighborhood)
+        if step_dt is not None:
+            if not np.isfinite(step_dt) or step_dt <= 0:
+                raise ValueError('Continuity requires a positive elapsed interval')
+            # The nominal posture is already a soft residual. It must not force
+            # a branch switch when its local box moves away from the last state.
+            speed = s.kin.robot.model.velocityLimit[6+s.movable[cols]]
+            delta = .8*speed*step_dt
+            lower = np.maximum(s.kin.robot.model.lowerPositionLimit[ids], previous[ids]-delta)
+            upper = np.minimum(s.kin.robot.model.upperPositionLimit[ids], previous[ids]+delta)
         best={'cost':np.inf,'x':np.clip(q[ids],lower+1e-8,upper-1e-8)}; cache={}
         pairs=s.model.ngeom**2
         class Deadline(Exception):pass
@@ -75,4 +84,6 @@ class RigidGrasp:
             max_gap_m=float(np.linalg.norm(actual-intended,axis=1).max()),
             max_palm_gap_m=float(np.linalg.norm(s.data.xpos[self.bodies]-target_p,axis=1).max()),
             max_robot_penetration_m=max([max(0.,-c.dist) for c in s.data.contact],default=0.),
+            continuity_interval_s=step_dt,
+            max_joint_step_rad=float(np.max(abs(q[ids]-previous[ids]))),
             fixed_finger_shape=True)

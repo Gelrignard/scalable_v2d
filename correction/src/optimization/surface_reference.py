@@ -42,7 +42,7 @@ class PhaseTiming:
 def build_reference(scene, raw, points, grasp_q, forces_world, grasp_frame, *,
                     first=235, last=480, stride=12, solve_seconds=2.,
                     approach=False, rigid_grasp=False,release=False, phase=None, arm_neighborhood=.9,
-                    grasp_object_pose=None):
+                    grasp_object_pose=None, continuous_ik=False):
     start = perf_counter()
     times = raw['timestamps']-raw['timestamps'][0]
     count = len(times); idx = 7+scene.movable
@@ -72,8 +72,13 @@ def build_reference(scene, raw, points, grasp_q, forces_world, grasp_frame, *,
     knots = nominal[knot_frames].copy()
     records = []
     previous = grasp_q.copy()
+    previous_frame = None
     for row, frame in enumerate(knot_frames):
         if not begin <= frame <= solve_end: continue
+        if continuous_ik and previous_frame is None:
+            previous_frame = int(knot_frames[max(0, row-1)])
+            previous = raw['q'][previous_frame].copy()
+            previous[idx] = nominal[previous_frame]
         target_points = deepcopy(points)
         clearance=lift=0.
         if approach:
@@ -94,11 +99,13 @@ def build_reference(scene, raw, points, grasp_q, forces_world, grasp_frame, *,
         if rigid_grasp:
             q,audit=rigid.solve(raw['q'][frame],raw['object_positions'][frame],raw['object_wxyz'][frame],initial,
                 clearance=clearance if approach or release else 0.,lift=lift if approach or release else 0.,
-                arm_neighborhood=arm_neighborhood)
+                arm_neighborhood=arm_neighborhood,
+                step_dt=max(float(times[frame]-times[previous_frame]), 1e-6) if continuous_ik else None)
         else:
             q, audit = solve_geometry(scene, target_points, raw['q'][frame], raw['object_positions'][frame],
                                       raw['object_wxyz'][frame], initial=initial, seconds=solve_seconds, max_evaluations=160)
         knots[row] = q[idx]; previous = q
+        previous_frame = int(frame)
         records.append(dict(frame=int(frame), approach=bool(approach and frame<first), **audit))
     # Shape-preserving C1 interpolation avoids cubic overshoot of joint limits.
     # Dynamics replay uses these derivatives, not an unrelated reconstructed spline.
@@ -132,6 +139,7 @@ def build_reference(scene, raw, points, grasp_q, forces_world, grasp_frame, *,
         release_enabled=release,release_end_frame=solve_end,
         timing=asdict(timing),
         arm_neighborhood_rad=arm_neighborhood,
+        continuous_ik=continuous_ik,
         stride=stride, interpolation='PCHIP C1; explicit command velocities',
         max_joint_limit_violation_rad=float(violation.max()),
         max_speed_fraction=float(np.max(abs(dv)/speed)),
