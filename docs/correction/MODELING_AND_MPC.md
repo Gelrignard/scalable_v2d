@@ -234,3 +234,132 @@ general geometric/contact feasibility is still unresolved; MPC is experimental
 and its first tested variant failed.** The new planning fixes did not regenerate
 or improve the saved bin trajectory. Their effect was tested on the additional
 episodes, where contact and smoothness checks still fail.
+
+## Decision after the contact-feasibility discussion
+
+The next development priority is **contact acquisition and persistence using
+current simulated state**, with accumulated, bounded command increments.
+Retain the staged solver as the starting point and make its local geometry,
+force and command updates share the same observed state and physical
+validation. Do not continue broad eight-parameter shooting sweeps as the
+default next experiment. This is a design decision, not an implemented or
+validated controller change.
+
+### What the implementation already observes
+
+- The ordinary controller uses actual robot FK and object pose to rotate
+  normals and measure selected-patch gaps. It measures actual contact forces,
+  but still follows the offline motion/contact schedule.
+- The shooting MPC initializes each prediction from actual robot/object state
+  and controller memory. Its fixed finger shapes, fixed contact schedule and
+  small palm-offset search can still fail to acquire a displaced object.
+- The orange viewer ghost uses the entire object's convex hull, whereas the
+  physical object uses convex decomposition and the displayed solid uses the
+  source mesh. Consequently a hollow/complex object can appear box-like in the
+  intended overlay. That proxy is inappropriate for judging contact surfaces.
+- Current surface hypotheses are taken from individual simulator collision
+  pieces, not directly from the orange global hull. Their exposure checks and
+  collision approximation still require validation. Perfect pose feedback
+  does not correct a wrong mesh, missing articulation or inertial model.
+
+Zero measured force is a symptom with several possible explanations: separation,
+unloaded touching, a different contact patch, or sensor matching failure. The
+controller needs signed gap, closest points, opposing normals, relative surface
+velocity and actual contact identity as well as force. MuJoCo also distinguishes
+detected contacts from force-producing constraints; see its
+[contact model documentation](https://mujoco.readthedocs.io/en/latest/computation/index.html#contact).
+
+### State, contact geometry and task intent
+
+At each update read only the current simulated state: robot q/dq, object SE3
+and twist, environment/body poses, actual contact records and controller memory.
+For articulated objects, each relevant link needs its own pose/joint state;
+a single rigid object pose cannot stand in for that structure. Do not use a
+previous recorded rollout's future states as observations.
+
+For an object-local candidate point c and outward unit normal n, construct an
+approach target from the current object pose:
+
+$$
+x^{\mathrm{approach}}=p^{\mathrm{obs}}+R^{\mathrm{obs}}(c+d n),\qquad d>0.
+$$
+
+This specifies an object-side approach location, not a complete robot grasp.
+The actual robot patch, its normal, finger configuration and swept collisions
+must also be checked. Candidate identity should remain stable across updates;
+do not jump to whichever triangle is nearest at each frame. Alternative nearby
+patches are selected using the demonstrated interaction neighborhood,
+reachability, approach clearance and mechanical capability.
+
+The desired object motion T-star remains the demonstration task objective.
+Within a prediction, contact geometry follows the **predicted** object pose
+initialized from the observed pose, rather than the desired pose or a frozen
+observed pose throughout the horizon. This separates where the object is from
+where it should go. Contact recovery must not reset the episode, overwrite the
+object, or silently shift the reference clock.
+
+Before contact, optimize approach distance, orientation and approach speed,
+including finger motion. A task-only object-motion objective may provide no
+useful distinction between several candidates that all miss the object.
+Treat prospective wrench capacity as conditional on making the contact, not
+as an available applied load. After contact, use the observed geometry and
+measured loading to update the force/command plan toward the original object
+goal. Losing contact returns to geometric recovery; a larger force target
+alone is not a recovery motion. Use persistence/hysteresis around transitions
+to prevent chatter. These transitions should follow measured geometry and
+load, with the demonstration as a prior, not hand-labeled episode frames.
+
+### Exact meaning of delta actions
+
+Use accumulated upper-body command increments (including necessary finger
+adjustments), with an EEF/contact objective:
+
+$$
+q^{\mathrm{cmd}}_{k+1}=q^{\mathrm{cmd}}_k+\Delta q_k.
+$$
+
+The observation initializes physical prediction; it does not overwrite the
+previous command at each update. Likewise retain the previous command velocity
+and acceleration when joining the next interpolated segment. This differs
+from defining every target as observed q plus a fresh delta. Both conventions
+exist; for example [robosuite's documented default](https://robosuite.ai/docs/modules/controllers.html)
+uses deltas from the current state. Our chosen convention must be explicit.
+
+For update interval h, constrain increments and their differences, componentwise:
+
+$$
+|\Delta q_k|\le v_{\max}h,\qquad
+|\Delta q_k-\Delta q_{k-1}|\le a_{\max}h^2.
+$$
+
+Also constrain joint limits, interpolation derivatives, force-guide rates,
+tracking error and predicted actuator demand with reserve. Command accumulation
+must not wind up against an unreachable contact or a saturated joint. Reduce
+or brake command progression smoothly when the physical robot cannot follow;
+do not hard-reset the target to measured q or clip it after fitting and hide
+the discontinuity. If no bounded continuation is feasible, report failure.
+
+Ground-truth feedback itself does not force command jumps. The problem is how
+new observations are converted into commands. The existing MPC already uses
+continuous quintic residuals; changing its action name alone cannot repair
+contact loss. The substantial changes are recoverable contact geometry,
+finger/approach freedom and actuator-aware command evolution.
+
+### Next validation, before another performance claim
+
+First resolve the source-mesh/collision-surface/ghost discrepancy for the same
+desk and stroller assets; do not tune gains to compensate for an invalid model.
+Then run one continuous full bin episode using current-state contact recovery
+and bounded delta commands, preserving the old controller result. Include one
+declared small physical disturbance or initial-placement offset as a separate
+test, with matched initial conditions for its baseline and no execution reset.
+Measure reacquisition, actual load, task progress, saturation and continuity,
+along with complete computation cost. Disturbed and nominal episodes must be
+reported separately. No additional viewer channel is needed.
+
+Cache collision surfaces and local patch data; update their transforms and
+local optimization from observation. Use a limited number of physical
+predictions to validate proposed prefixes. Runtime remains a measured result,
+not a claim that all such feedback solves will be cheap. These tests assess
+perfect-state simulation feedback first, not robustness to perception errors
+or a demonstrated reduction in RL training cost.
