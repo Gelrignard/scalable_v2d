@@ -16,7 +16,9 @@ from ..optimization.surface_reference import smoothstep
 
 @dataclass(frozen=True)
 class SurfaceFollowConfig:
-    frames: tuple = (660, 675, 725, 746)
+    # None uses the inherited contact schedule throughout the episode.
+    # The historical window remains the default to preserve old experiments.
+    frames: tuple | None = (660, 675, 725, 746)
     gain: float = .5
     surface_displacement_limit_m: float = .015
     capture_m: float = .03
@@ -28,12 +30,12 @@ class SurfaceFollowConfig:
     response_frequency_rad_s: float = 12.
 
     def __post_init__(self):
-        if len(self.frames) != 4 or not all(isinstance(i, int) for i in self.frames) or not (
-                0 <= self.frames[0] < self.frames[1] <= self.frames[2] < self.frames[3]):
+        if self.frames is not None and (len(self.frames) != 4 or not all(isinstance(i, int) for i in self.frames) or not (
+                0 <= self.frames[0] < self.frames[1] <= self.frames[2] < self.frames[3])):
             raise ValueError('Follow envelope needs ordered frame indices')
-        values = [v for k, v in asdict(self).items() if k != 'frames']
-        if not np.isfinite(values).all() or min(values) <= 0 or self.gain > 1:
-            raise ValueError('Follow parameters must be positive/finite and gain <=1')
+        values = [v for k, v in asdict(self).items() if k not in ('frames', 'gain')]
+        if not np.isfinite(values).all() or min(values) <= 0 or not np.isfinite(self.gain) or not 0 <= self.gain <= 1:
+            raise ValueError('Follow parameters must be positive/finite and gain in [0,1]')
 
 
 class BoundedOffset:
@@ -88,7 +90,7 @@ class SurfaceFollowController(G1ContactController):
         self.follow_config = follow_config
         if self.object_points is None:
             raise ValueError('Surface follow needs explicit object-patch trajectories')
-        if follow_config.frames[-1] >= len(self.times):
+        if follow_config.frames is not None and follow_config.frames[-1] >= len(self.times):
             raise ValueError('Follow envelope extends beyond the complete episode')
         self.plan_positions = np.asarray(planning_poses['object_positions'])
         quats = np.asarray(planning_poses['object_wxyz'])
@@ -98,7 +100,7 @@ class SurfaceFollowController(G1ContactController):
         self.follow = BoundedOffset(len(self.kp), follow_config)
         self.columns, self.joint_margin = safe_follow_columns(nominal_positions, nominal_velocities,
             self.times, self.lower, self.upper, self.scene.hand,
-            follow_config.joint_offset_limit_rad, follow_config.frames[0])
+            follow_config.joint_offset_limit_rad, 0 if follow_config.frames is None else follow_config.frames[0])
         if not np.any(self.columns):
             raise ValueError('No arm joints have enough continuous margin for bounded feedback')
         self.target_offset = np.zeros(len(self.kp)); self.next_update = -1.
@@ -106,13 +108,15 @@ class SurfaceFollowController(G1ContactController):
 
     def step(self, time, q, velocity, planned_force, compensation):
         s, c = self.scene, self.follow_config
-        envelope_times = self.times[list(c.frames)]
-        weight = smoothstep((time-envelope_times[0])/(envelope_times[1]-envelope_times[0]))
-        weight *= 1-smoothstep((time-envelope_times[2])/(envelope_times[3]-envelope_times[2]))
+        weight = 1.
+        if c.frames is not None:
+            envelope_times = self.times[list(c.frames)]
+            weight = smoothstep((time-envelope_times[0])/(envelope_times[1]-envelope_times[0]))
+            weight *= 1-smoothstep((time-envelope_times[2])/(envelope_times[3]-envelope_times[2]))
         if time+1e-9 >= self.next_update:
             self.next_update = time+c.update_seconds
             self.target_offset[:] = 0.
-            if weight > 0:
+            if weight > 0 and c.gain > 0:
                 k = min(max(0, np.searchsorted(self.times, time, side='right')-1), len(self.times)-2)
                 u = np.clip((time-self.times[k])/(self.times[k+1]-self.times[k]), 0, 1)
                 local = (1-u)*self.local_points[k]+u*self.local_points[k+1]

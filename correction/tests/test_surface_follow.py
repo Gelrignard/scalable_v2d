@@ -47,24 +47,46 @@ class SurfaceFollowTests(unittest.TestCase):
         kwargs = dict(scene=scene, points=[point], normals_local=np.tile([-1., 0, 0], (9, 1, 1)),
             active=active, times=times, config=ContactControllerConfig(patch_distance_gate=True), kp=np.array([20.]),
             point_local_trajectory=local, object_local_trajectory=anchors)
-        controller = SurfaceFollowController(**kwargs, follow_config=SurfaceFollowConfig(frames=(2, 3, 6, 7)),
-            nominal_positions=np.zeros((9, 1)), nominal_velocities=np.zeros((9, 1)),
-            planning_poses=dict(object_positions=np.zeros((9, 3)), object_wxyz=np.tile([1., 0, 0, 0], (9, 1))))
-        baseline = G1ContactController(**kwargs); physical = data.qpos.copy()
-        maximum = 0.
-        for step in range(801):
-            time = step*.001
-            actual = controller.step(time, np.zeros(1), np.zeros(1), np.zeros((1, 3)), np.zeros(1))
-            if time <= .2:
-                original = baseline.step(time, np.zeros(1), np.zeros(1), np.zeros((1, 3)), np.zeros(1))
-                np.testing.assert_array_equal(actual, original)
-            maximum = max(maximum, actual[0][0])
-        # Positive object translation moves the target positively, at bounded speed.
-        self.assertGreater(maximum, .001)
-        self.assertLess(maximum, .003)
-        np.testing.assert_array_equal(data.qpos, physical)
-        np.testing.assert_array_equal(data.qfrc_applied, np.zeros(model.nv))
-        self.assertEqual(controller.follow.conflicts, 0)
+        for cfg in (SurfaceFollowConfig(frames=(2, 3, 6, 7)),
+                    SurfaceFollowConfig(frames=None), SurfaceFollowConfig(frames=None, gain=0)):
+            with self.subTest(config=cfg):
+                controller = SurfaceFollowController(**kwargs, follow_config=cfg,
+                    nominal_positions=np.zeros((9, 1)), nominal_velocities=np.zeros((9, 1)),
+                    planning_poses=dict(object_positions=np.zeros((9, 3)), object_wxyz=np.tile([1., 0, 0, 0], (9, 1))))
+                baseline = G1ContactController(**kwargs); physical = data.qpos.copy()
+                maximum = 0.
+                for step in range(801):
+                    time = step*.001
+                    actual = controller.step(time, np.zeros(1), np.zeros(1), np.zeros((1, 3)), np.zeros(1))
+                    if time <= .2 or cfg.gain == 0:
+                        original = baseline.step(time, np.zeros(1), np.zeros(1), np.zeros((1, 3)), np.zeros(1))
+                        np.testing.assert_array_equal(actual, original)
+                    maximum = max(maximum, actual[0][0])
+                # Positive object displacement moves the target positively.
+                if cfg.gain:
+                    self.assertGreater(maximum, .001)
+                    self.assertLess(maximum, .003)
+                else:
+                    self.assertEqual(maximum, 0.)
+                np.testing.assert_array_equal(data.qpos, physical)
+                np.testing.assert_array_equal(data.qfrc_applied, np.zeros(model.nv))
+                self.assertEqual(controller.follow.conflicts, 0)
+
+    def test_inherited_planning_shift_is_not_confused_with_task_target(self):
+        from correction.scripts.replay_nominal_residual import inherited_planning_poses
+        reference = dict(q=np.zeros((10, 1)), object_positions=np.zeros((10, 3)),
+            object_wxyz=np.tile([1., 0, 0, 0], (10, 1)), contact_active=np.zeros((10, 1), bool))
+        reference['contact_active'][5:9] = True
+        sequence = dict(command=dict(second_planning_translation_m=[.05, 0, 0]),
+            phase_contacts=[{}, dict(timing=dict(approach_start=3, force_full=5, contact_end=8))])
+        poses = inherited_planning_poses(reference, sequence)
+        np.testing.assert_array_equal(poses['object_positions'][:3], 0.)
+        np.testing.assert_allclose(poses['object_positions'][3:6, 0], .05)
+        np.testing.assert_allclose(poses['object_positions'][8:], 0.)
+        np.testing.assert_array_equal(reference['object_positions'], 0.)
+        reference['contact_active'][3] = True
+        with self.assertRaises(ValueError):
+            inherited_planning_poses(reference, sequence)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,9 @@
 # Current feedback/MPC: diagnosis and proposed next method
 
+Follow-up after user review: [preserve the nominal correction and test bounded
+observed-state feedback](NOMINAL_RESIDUAL_FEEDBACK_2026-10-20.md). That first
+ablation does not implement the full coupled proposal below.
+
 ## Viewer and scope
 
 [Current feedback/MPC replay](http://127.0.0.1:8088/) shows the original
