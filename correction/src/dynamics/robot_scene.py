@@ -18,7 +18,7 @@ def numbers(values):
 
 
 class RobotScene:
-    def __init__(self, kin, bounds, support_path, *, mass=1., friction=.6, object_parts=None, floor_z=0.):
+    def __init__(self, kin, bounds, support_path, *, mass=1., friction=.6, object_parts=None, floor_z=0., object_inertial=None):
         self.kin = kin
         self.friction = friction
         root = ET.parse(kin.config.urdf_path).getroot()
@@ -82,6 +82,12 @@ class RobotScene:
         self.bounds = np.asarray(bounds)
         book = ET.SubElement(world, 'body', name='book')
         ET.SubElement(book, 'freejoint', name='book_root')
+        if object_inertial is not None:
+            com=np.asarray(object_inertial['com_local_m'],float)
+            inertia=np.asarray(object_inertial['diagonal_kg_m2'],float)
+            if com.shape!=(3,) or inertia.shape!=(3,) or not np.isfinite(np.r_[com,inertia,mass]).all() or mass<=0 or np.any(inertia<=0):
+                raise ValueError('Explicit object inertial parameters must be positive and finite')
+            ET.SubElement(book,'inertial',pos=numbers(com),mass=str(mass),diaginertia=numbers(inertia))
         if object_parts is None:
             ET.SubElement(book, 'geom', name='book_geom', type='box',
                           size=numbers((bounds[1]-bounds[0])/2), pos=numbers(bounds.mean(axis=0)),

@@ -16,7 +16,10 @@ from .robot_scene import numbers
 
 class SupportedContacts:
     def __init__(self, bounds, *, mass=1., friction=.6, radius=.006,
-                 stiffness=1200., force_limit=25., dt=.001, table=None):
+                 stiffness=1200., force_limit=25., dt=.001, table=None, pad_count=6):
+        if not isinstance(pad_count, int) or pad_count<1:
+            raise ValueError('Positive integer pad count required')
+        self.pad_count=pad_count
         self.bounds = np.asarray(bounds)
         self.radius, self.kp, self.force_limit = radius, stiffness, force_limit
         self.pad_mass = .04
@@ -38,7 +41,7 @@ class SupportedContacts:
                       size=numbers(np.ptp(bounds, axis=0)/2), pos=numbers(np.mean(bounds, axis=0)),
                       mass=str(mass), contype='1', conaffinity='3', condim='3',
                       friction=f'{friction} .00001 .00001', solref='.003 1', solimp='.95 .99 .001')
-        for i in range(6):
+        for i in range(self.pad_count):
             pad = ET.SubElement(world, 'body', name=f'pad{i}')
             for j in range(3):
                 ET.SubElement(pad, 'joint', name=f'pad{i}_{j}', type='slide',
@@ -50,8 +53,8 @@ class SupportedContacts:
         self.model = mujoco.MjModel.from_xml_string(self.xml)
         self.data = mujoco.MjData(self.model)
         self.book_geom = self.model.geom('book_geom').id
-        self.qadr = np.array([[int(self.model.joint(f'pad{i}_{j}').qposadr[0]) for j in range(3)] for i in range(6)])
-        self.vadr = np.array([[int(self.model.joint(f'pad{i}_{j}').dofadr[0]) for j in range(3)] for i in range(6)])
+        self.qadr = np.array([[int(self.model.joint(f'pad{i}_{j}').qposadr[0]) for j in range(3)] for i in range(self.pad_count)])
+        self.vadr = np.array([[int(self.model.joint(f'pad{i}_{j}').dofadr[0]) for j in range(3)] for i in range(self.pad_count)])
 
     def environment_penetration(self, positions, quaternions, pads):
         """Geometry-only audit used before reset, never during a rollout."""
@@ -111,7 +114,7 @@ class SupportedContacts:
                 out_p.append(self.data.qpos[:3].copy())
                 out_r.append(self.data.qpos[3:7].copy())
                 out_pad.append(self.data.qpos[self.qadr].copy())
-                contact_forces = np.zeros((6, 3))
+                contact_forces = np.zeros((self.pad_count, 3))
                 depth = 0.
                 for ic, c in enumerate(self.data.contact):
                     if self.book_geom not in (c.geom1, c.geom2):
@@ -122,7 +125,7 @@ class SupportedContacts:
                         force = np.zeros(6)
                         mujoco.mj_contactForce(self.model, self.data, ic, force)
                         sign = -1 if c.geom1 == self.book_geom else 1
-                        contact_forces[int(name[3])] += sign*c.frame.reshape(3, 3).T@force[:3]
+                        contact_forces[int(name.split('_')[0][3:])] += sign*c.frame.reshape(3, 3).T@force[:3]
                         depth = max(depth, -c.dist)
                 out_force.append(contact_forces)
                 out_depth.append(depth)

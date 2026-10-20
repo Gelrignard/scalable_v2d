@@ -1,12 +1,13 @@
 # Scalable V2D robot grounding
 
-Research prototype for the [NVIDIA Video to Data Challenge, Track 2](https://nvidia-isaac.github.io/video_to_data/v2d_challenge/): use human and object motion to construct a contact-aware robot reference, then correct it using object inverse dynamics and trajectory optimization before policy training.
+Research prototype for the [NVIDIA Video to Data Challenge, Track 2](https://nvidia-isaac.github.io/video_to_data/v2d_challenge/): use human and object observations to construct a contact-aware robot reference, then jointly refine motion and contact forces through trajectory optimization before policy training.
 
 The research question is whether this preprocessing reduces the GPU time and environment steps needed to learn useful manipulation policies. That benefit has **not yet been measured**.
 
 ## Start here
 
-- [Method and mathematical derivation](docs/correction/METHOD.md)
+- [New coupled correction: uncertain observations, continuous motion, and validation status](docs/correction/COUPLED_HORIZON.md)
+- [Earlier method and mathematical derivation](docs/correction/METHOD.md)
 - [G1/Dex3 supported physics: robot integration, errors, and SONIC's role](docs/correction/SUPPORTED_G1.md)
 - [Three random full episodes: supported pelvis, before/after physics and failed tracking results](docs/correction/FULL_EPISODE_COMPARISON.md)
 - [Supported EEF demo: measured contact dynamics and scope](docs/correction/SUPPORTED_MANIPULATION.md)
@@ -22,8 +23,9 @@ The research question is whether this preprocessing reduces the GPU time and env
 | Component | Status |
 |---|---|
 | [Contact-aware retargeting](retargeting/README.md) | CPU body/hand IK, explicit contact targets, canonical input, diagnostics, viewers, and reference export |
-| [Dynamics-guided correction](correction/README.md) | Object inverse dynamics, sparse force allocation, bounded contact hypotheses, temporal robot refinement, collision checks, and diagnostic CPU rollouts |
-| Tier 1 demonstration | Supported G1/Dex3 carries a free book with fixed pelvis/legs; correction improves tracking but misses the 10 mm / 5 degree gate. Six-pad experiment passes its separate reduced-model checks |
+| [Dynamics-guided correction](correction/README.md) | Experimental coupled observation/contact/trajectory optimizer with CPU physical tests; earlier inverse-dynamics and pose-repair baselines remain available |
+| New coupled correction validation | Controlled two-pad physics passes; recorded G1 first pickup fails convergence and geometry checks. No accepted G1 result yet |
+| Earlier Tier 1 demonstrations | Supported G1/Dex3 carry misses the 10 mm / 5 degree gate; separate six-pad experiment passes its reduced-model checks |
 | Tier 2 policy comparison | Planned; general episode/noisy-input support and the trainer remain to be implemented |
 | Tier 3 reconstruction | Planned; no integrated video-to-motion reconstruction pipeline yet |
 

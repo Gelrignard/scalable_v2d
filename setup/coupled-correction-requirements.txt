@@ -1,0 +1,3 @@
+# Optional CPU nonlinear optimizer and independent physical replay.
+-r correction-simulation-requirements.txt
+casadi==3.7.2

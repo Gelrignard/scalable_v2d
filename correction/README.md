@@ -4,6 +4,58 @@ Refine a retargeted manipulation reference using object dynamics, contact-force
 optimization, and local arm/hand trajectory optimization. Dataset decoding is
 outside this module.
 
+The current preview compares **original retargeting versus our method** over a
+complete episode, with intended object motion always visible in orange beside
+the simulated objects. Its **Channel** selector switches between **Robot
+simulation** and **Independent support-point simulation** of that same full
+episode. The second channel shows six dynamic pads, intended contact paths,
+planned forces and measured forces. It is a separate physical experiment,
+without robot IK or walking. Both current corrected rollouts fail tracking.
+Run **one preview server at a time**; close it before
+starting a different historical viewer. The current candidate still fails
+physical acceptance.
+
+```text
+python -m correction.scripts.view_controller_comparison --port 8087
+```
+
+To generate new independent-pad recordings from the saved full G1 reference:
+
+```text
+python -m correction.scripts.compare_support_points --output correction/outputs/my_support_points
+python -m correction.scripts.view_controller_comparison --support-directory correction/outputs/my_support_points --port 8087
+```
+
+The viewer replays saved data; it does not keep physics running in the background.
+See [controller execution and comparison](../docs/correction/CONTROLLER_EXECUTION.md)
+for assumptions and measured results.
+
+## Coupled correction with uncertain observations
+
+The new experimental solver jointly estimates object motion, robot motion,
+contact anchors and forces over a horizon. It does not differentiate noisy
+observed object poses into demanded wrenches. See the
+[formulation, results and current failures](../docs/correction/COUPLED_HORIZON.md).
+
+The controlled two-pad physical replay passes; the recorded G1 first pickup
+still fails convergence and geometry checks. The comparison viewer below
+continues to show the earlier method. Failed new plans are diagnostic outputs,
+not accepted training references.
+
+Optional controller-aware execution now keeps the physical trajectory separate
+from servo targets, adds bounded normal-force feedback, and preserves the old
+controller as an explicit fallback. See the [implementation and full-episode
+test record](../docs/correction/CONTROLLER_EXECUTION.md). These experiments do
+not establish a successful G1 correction or an RL speedup.
+
+```text
+python -m pip install -r setup/coupled-correction-requirements.txt
+python -m correction.scripts.coupled_controlled --verify
+python -m correction.scripts.view_coupled --port 8085
+python -m correction.scripts.diagnose_horizon_contacts
+python -m correction.scripts.coupled_book --stride 12 --seconds 120 --initialize-contacts
+```
+
 ## Supported manipulation demo
 
 The [three randomly selected full episodes](../docs/correction/FULL_EPISODE_COMPARISON.md)

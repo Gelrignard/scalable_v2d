@@ -1,5 +1,12 @@
 # Demonstration-preserving contact correction before policy learning
 
+**New experimental formulation, 19 October:** [Coupled uncertain-observation
+correction](COUPLED_HORIZON.md) jointly optimizes latent object motion, continuous
+robot motion, contact geometry and forces. It does not differentiate noisy
+object observations into target wrenches. Controlled physical tests pass;
+recorded G1 success is not yet established. The older derivation below documents
+the previous, separately solved geometry/force pipeline and its limitations.
+
 **Method note and implementation audit — 12 October 2026**
 
 **G1 integration update, 19 October:** [Supported G1/Dex3 physics](SUPPORTED_G1.md)
