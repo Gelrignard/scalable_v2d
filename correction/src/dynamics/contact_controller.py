@@ -143,6 +143,9 @@ class G1ContactController:
         self.max_feedback = self.max_contact_command_step = 0.
         self.previous_contact_torque = np.zeros(len(kp))
         self.last = None
+        # Optional, explicitly supplied by the observed-state planner. The
+        # immutable demonstration arrays remain the default for old replays.
+        self.reference_override = None
 
     def step(self, time, q, velocity, planned_force, compensation):
         s, cfg, dt = self.scene, self.config, self.scene.model.opt.timestep
@@ -158,6 +161,14 @@ class G1ContactController:
         rotation = Rotation.from_quat(d.qpos[s.book_q+3:s.book_q+7], scalar_first=True)
         normal = rotation.apply(normal)
         local_points = (1-u)*self.local_points[k]+u*self.local_points[k+1]
+        object_points = ((1-u)*self.object_points[k]+u*self.object_points[k+1]
+                         if self.object_points is not None else None)
+        if self.reference_override is not None:
+            override = self.reference_override
+            active = override['active'].copy()
+            normal = rotation.apply(override['inward'])
+            local_points = override['robot_local']
+            object_points = override['object_local']
         world_points = np.array([d.xpos[p.body]+d.xmat[p.body].reshape(3, 3)@local
                                  for p, local in zip(self.points, local_points)])
         measured, touching = np.zeros_like(planned_force), np.zeros(len(self.points), bool)
@@ -177,6 +188,10 @@ class G1ContactController:
             # A different face or remote patch on this body is not our sensor.
             if sign*frame[0]@normal[i] < .5 or np.linalg.norm(contact.pos-world_points[i]) > .03:
                 continue
+            if self.reference_override is not None:
+                anchor=d.qpos[s.book_q:s.book_q+3]+rotation.apply(object_points[i])
+                if np.linalg.norm(contact.pos-anchor) > .025:
+                    continue
             wrench = np.zeros(6)
             mujoco.mj_contactForce(m, d, ci, wrench)
             measured[i] += sign*frame.T@wrench[:3]
@@ -187,8 +202,8 @@ class G1ContactController:
             touching[i] |= wrench[0] > 1e-6
         measured_point /= np.maximum(measured_weight[:, None], 1e-12)
         local = rotation.inv().apply(world_points-d.qpos[s.book_q:s.book_q+3])
-        gap = (np.linalg.norm(local-((1-u)*self.object_points[k]+u*self.object_points[k+1]), axis=1)
-               if self.object_points is not None else
+        gap = (np.linalg.norm(local-object_points, axis=1)
+               if object_points is not None else
                np.linalg.norm(np.maximum(np.maximum(s.bounds[0]-local, local-s.bounds[1]), 0), axis=1))
         eligible = active & (touching | (gap < cfg.near_surface_m))
         engagement = self.engagement.update(eligible, active, dt)

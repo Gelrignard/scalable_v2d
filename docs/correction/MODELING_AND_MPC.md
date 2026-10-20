@@ -363,3 +363,105 @@ predictions to validate proposed prefixes. Runtime remains a measured result,
 not a claim that all such feedback solves will be cheap. These tests assess
 perfect-state simulation feedback first, not robustness to perception errors
 or a demonstrated reduction in RL training cost.
+
+## Implemented observed-state recovery prototype
+
+The design now has an opt-in implementation:
+
+See [the implemented equations, example and reproduction command](OBSERVED_CONTACT_RECOVERY.md).
+
+- `correction/src/dynamics/observed_contact.py`: cached real collision patches,
+  actual object/robot geometry, selected-patch contact sensing, and conditional
+  hand/environment wrench allocation. Distance and force are separate signals.
+- `correction/src/optimization/delta_command.py`: accumulated command endpoints
+  with whole-curve position/velocity/acceleration constraints on quintic
+  Bernstein coefficients. New curves start from previous commanded q/dq/ddq.
+- `correction/src/optimization/contact_recovery.py`: observed-state geometry
+  proposals including fingers, force allocation, and physical comparison with
+  the shifted previous command. No random shooting search is used here.
+- `correction/scripts/replay_contact_recovery.py`: full-episode replay with
+  source snapshots, timing, actual physics metrics and explicit initial offsets.
+- `correction/scripts/audit_recovery_geometry.py`: selected contact patches
+  compared with source mesh and the simulator's collision geometry.
+
+The predictor and executor use the same `requested_torque` function. Predictions
+copy robot/object state and controller memory. Every selected 0.15-second
+prefix is compared with actual execution; each prediction extends 0.45 seconds.
+Desired object motion and episode time remain unchanged. Force guidance acts
+only through robot torques and actual contacts. A candidate is not physically
+accepted merely because it improves the prediction cost or its QP solves.
+
+The force allocator includes a bounded object pose-error/velocity-feedback
+wrench, not differentiated observed acceleration. Its actuator constraint is
+an instantaneous approximation including joint PD and bias/passive forces;
+the final physical prediction also includes robot inertia and the moving
+fixture. Command constraints cover entire polynomials conservatively. The
+geometry and force QPs remain separate stages, followed by coupled physical
+validation. This is not a single joint nonlinear program.
+
+Patch sensing now checks proximity to both the selected robot surface and the
+selected object patch, as well as normal direction and active physical contact.
+A remote contact on the same robot link is not sufficient. The default saved
+controller is unchanged; the stricter behavior is enabled by the recovery
+reference override. Source-derived contact neighborhoods and phase priors
+remain restrictions. Stroller wheels remain unarticulated.
+
+The first completed recovery trial (`nominal_v4`) is **rejected**: 303.19 mm /
+69.75 degrees object RMS, compared with 211.72 mm / 38.95 degrees for the
+matched contact-gating baseline and 48.48 mm / 5.91 degrees for the retained
+method. It has all 858 frames and zero prediction/execution discrepancy, but
+loses useful contact and task progress. Its recorded wall time is 307.52 s
+(local CPU), not real-time execution. It also exposed remote-patch attribution
+in the initial observer; the stricter fix was validated separately below.
+
+The strict-patch replay (`nominal_v5`) also completed all 858 frames and is
+**rejected**: 467.73 mm / 86.54 degrees RMS, 570.66 s wall / 501.67 CPU-seconds,
+about 1.13 GB peak process memory. It found no matching selected contact and
+applied no force guidance. The predictor/executor discrepancy remained zero.
+This means the shared dynamics implementation is consistent; it does not mean
+the contact strategy works. Merely tracking fixed saved patches at the observed
+object pose is insufficient in this trial.
+
+The bounded extension explicitly proposes nearby actual collision patches
+using physical contacts or closest-geometry points. The center of each search
+remains the original human-derived prior (80 mm object / 40 mm robot radii),
+and a currently matched patch is retained. The candidate geometry is adopted
+only with its command after physical comparison against the unchanged
+continuation. This is a limited patch-selection stage, not free grasp search.
+
+Its full replay (`nominal_v6`) is also **rejected**: 391.97 mm / 69.59 degrees
+RMS, 675.60 s wall / 577.06 CPU-seconds, 1.132 GB peak process memory. It restores
+90 sampled frames of selected-patch contact and accepts eight patch changes,
+but does not produce a reliable grasp or task. All 858 frames are simulated,
+with no object assistance or resets. All predicted prefixes match execution
+exactly. Peak requested torque is 2.198 times capacity, joint-limit excursion
+is 10.34 mrad, and penetration is 1.113 mm. The controller selects 110/191
+proposals; 49 command QPs fail, and eight attempted force allocations fail.
+Solved force QPs can still have large residuals because balance is soft.
+
+There are 19 passing focused tests, including real-mesh patch reselection,
+fixed-neighborhood rejection and command continuity/bounds. These tests support
+implementation semantics, not manipulation success. The initial-placement
+disturbance test is deferred after nominal rejection; no robustness claim is
+made. Next work must preserve the approach/controller baseline while coupling
+opposing contact acquisition and achievable support to task progression.
+Current endpoint commands and a fixed demonstration clock do not implement
+that coupling. No broad gain search or additional episode batch was started.
+The contact-gating baseline matches near-surface/engagement settings and keeps
+the original reference/sensor path; it does not isolate all other recovery
+changes individually. The observed failures should not be attributed to one
+parameter or to the feedback concept as a whole.
+
+The complete default-controller regression reproduces the retained robot q,
+joint/generalized velocities, torque and object SE3 arrays bit for bit. Its
+48.48 mm / 5.91 degree result remains preserved, and still fails the strict
+physical acceptance criteria. The viewer now draws intended objects using the
+source mesh rather than a global hull; its existing data and two channels are
+unchanged. Source-mesh distances at selected collision patches are up to
+3.03 mm for desk, 1.70 mm for stroller and 9.74 mm for bin. This is a local audit,
+not certification of the complete physical model.
+
+The local [experiment report](../../correction/outputs/contact_recovery_20261020/REPORT.md)
+records diagnostic starts, source versions, geometry discrepancies, complete
+physical results and next decisions. The saved bin reference is not replaced,
+and no training export or learning-efficiency claim is made.

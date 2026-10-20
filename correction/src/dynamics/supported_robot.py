@@ -135,7 +135,8 @@ class SupportedRobotScene(RobotScene):
                 command_velocity=None, force_points=None, initial_object_state=None, smooth_fixture=False,
                 contact_controller=None, contact_normals_local=None, contact_active=None, object_feedback=None,wrench_residual=None,
                 point_local_trajectory=None, object_local_trajectory=None, inertia_ff_scale=1.,
-                contact_body_audit=False, surface_follow=None, surface_follow_plan=None, predictive_config=None):
+                contact_body_audit=False, surface_follow=None, surface_follow_plan=None, predictive_config=None,
+                recovery_config=None):
         if not np.isfinite(inertia_ff_scale) or not 0<=inertia_ff_scale<=1:
             raise ValueError('Inertial feedforward scale must be in [0,1]')
         if (surface_follow is None) != (surface_follow_plan is None):
@@ -146,6 +147,10 @@ class SupportedRobotScene(RobotScene):
                 or wrench_residual is not None or contact_controller is None or not self.moving_fixture
                 or not smooth_fixture):
             raise ValueError('Shooting MPC requires the base contact controller and smooth moving fixture')
+        if recovery_config is not None and (predictive_config is not None or surface_follow is not None or
+                object_feedback is not None or wrench_residual is not None or contact_controller is None or
+                not self.moving_fixture or not smooth_fixture):
+            raise ValueError('Contact recovery requires the base controller and smooth supported fixture')
         relative = times-times[0]
         spline = (CubicSpline(relative, q[:, 7+self.movable], axis=0) if command_velocity is None else
                   CubicHermiteSpline(relative, q[:, 7+self.movable], command_velocity, axis=0))
@@ -244,14 +249,17 @@ class SupportedRobotScene(RobotScene):
         upper = self.kin.robot.model.upperPositionLimit[7+self.movable]
         pair, sample = '', 0
         predictive = None
-        if predictive_config is not None:
+        if predictive_config is not None or recovery_config is not None:
             from ..optimization.contact_mpc import ContactMPC
-            predictive = ContactMPC(self, controller, predictive_config,
+            from ..optimization.contact_recovery import ContactRecovery
+            planner = ContactMPC if recovery_config is None else ContactRecovery
+            predictive = planner(self, controller, predictive_config if recovery_config is None else recovery_config,
                 dict(times=step_times, commands=commands.copy(), velocities=velocities.copy(),
                      acceleration=acceleration.copy(), force=force.copy(), desired_p=desired_p,
                      desired_r=desired_r, fixture_p=fixture_p, fixture_r=fixture_r,
                      fixture_a=fixture_a, fixture_alpha=fixture_alpha,
-                     kp=kp, kd=kd, inertia_ff=inertia_ff, inertia_scale=inertia_ff_scale))
+                     kp=kp, kd=kd, inertia_ff=inertia_ff, inertia_scale=inertia_ff_scale,
+                     sample_steps=set(sample_steps[:-1])))
         for step, t in enumerate(step_times):
             audit_frame = min(max(0, np.searchsorted(relative, t, side='right')-1), len(times)-1)
             frame_peak_velocity[audit_frame] = np.maximum(frame_peak_velocity[audit_frame], abs(self.data.qvel[self.active_v]))

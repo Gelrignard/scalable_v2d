@@ -1,5 +1,10 @@
 # Trajectory correction
 
+The opt-in [observed-state recovery prototype](../docs/correction/OBSERVED_CONTACT_RECOVERY.md)
+uses actual object/robot state, explicit collision-patch alternatives, bounded
+accumulated commands and physical prediction. Its completed trials have not
+passed task acceptance; the retained bin comparison remains the default.
+
 Refine a retargeted manipulation reference using object dynamics, contact-force
 optimization, and local arm/hand trajectory optimization. Dataset decoding is
 outside this module.

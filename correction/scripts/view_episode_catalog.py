@@ -83,7 +83,7 @@ class CatalogViewer:
                 server.scene.add_grid('/floor',width=8,height=8,plane='xy',
                     position=(0.,0.,float(ref['floor_z'])))
                 server.scene.add_frame('/world_origin',axes_length=.2,axes_radius=.003)
-                mesh=trimesh.load(str(ref['object_mesh']),force='mesh'); hull=mesh.convex_hull
+                mesh=trimesh.load(str(ref['object_mesh']),force='mesh')
                 target_path=np.stack((ref['object_positions'][:-1],ref['object_positions'][1:]),axis=1).astype(np.float32)
                 state['nodes']=[]; state['overlays']=[]
                 for i in range(2):
@@ -96,9 +96,9 @@ class CatalogViewer:
                     actual=server.scene.add_mesh_trimesh(prefix+'/object',mesh)
                     pad_object=server.scene.add_mesh_simple(prefix+'/pad_object',mesh.vertices,mesh.faces,
                         color=(68,124,173),opacity=.3,visible=False,cast_shadow=False,receive_shadow=False)
-                    target=server.scene.add_mesh_simple(prefix+'/intended',hull.vertices,hull.faces,
+                    target=server.scene.add_mesh_simple(prefix+'/intended',mesh.vertices,mesh.faces,
                         color=(255,143,25),opacity=.22,cast_shadow=False,receive_shadow=False)
-                    outline=server.scene.add_mesh_simple(prefix+'/outline',hull.vertices,hull.faces,
+                    outline=server.scene.add_mesh_simple(prefix+'/outline',mesh.vertices,mesh.faces,
                         color=(255,143,25),wireframe=True,opacity=.9,cast_shadow=False,receive_shadow=False)
                     server.scene.add_line_segments(prefix+'/intended_path',target_path,colors=(255,143,25),line_width=2.)
                     error=server.scene.add_line_segments(prefix+'/error',np.zeros((1,2,3),np.float32),colors=(220,65,65))
@@ -118,6 +118,7 @@ class CatalogViewer:
                     'Object and upper robot joints have physical dynamics and finite actuators; pelvis is externally supported. '
                     'No object assistance or phase resets. Walking and balance are not simulated.\\n\\n'
                     'World trajectories remain fixed. Display panels use constant Y offsets of -0.8/+0.8 m.\\n\\n'
+                    'Orange and solid objects use the source mesh. Physics uses convex collision pieces; the orange ghost is not a collision-surface certificate.\\n\\n'
                     'Independent pads are a separate Cartesian-actuator experiment; they are not articulated robot execution.\\n\\n'
                     f'**Run provenance:** {entry.get("model_notes", "See saved experiment report.")}\\n\\n'
                     f'**Stage status:** {diagnostic or "Saved staged reference; physical acceptance remains separate."}\\n\\n'
