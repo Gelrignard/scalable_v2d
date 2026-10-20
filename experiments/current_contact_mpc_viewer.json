@@ -1,6 +1,21 @@
 {
-  "scope": "Saved full-episode replay of current staged observed-state receding-horizon controller; rejected diagnostic, separate from preserved best viewer",
+  "scope": "Saved full-episode guarded staged-feedback and previous MPC diagnostics; separate from preserved best viewer",
   "episodes": [
+    {
+      "name": "18 - Blue bin - guarded staged feedback",
+      "directory": "correction/outputs/guarded_residual_20261020/active_v1",
+      "original_directory": "correction/outputs/overnight_20261020/rest_matched_v1",
+      "method_label": "GUARDED STAGED FEEDBACK · EXPERIMENTAL",
+      "rejected": true,
+      "stage_status": "Preserved nominal with bounded observed-state residual and physical prediction guards. Full 858 frames / 28.57 s. One of 56 proposals accepted; selected prediction prefixes match execution exactly. Physical acceptance still fails.",
+      "model_notes": "Compare smooth return toward nominal with bounded surface feedback from the same actual robot/object/controller state. Recheck every 0.3 s with 1.2 s prediction. Original force guidance and task clock retained. Saved replay; no optimizer runs in this viewer.",
+      "display_limitations": [
+        "Mixed result versus preserved correction: position RMS 48.48 to 45.84 mm, rotation RMS 5.91 to 6.60 degrees. Not promoted as a superior feasible reference.",
+        "Peak requested torque remains 2.307 times capacity; actual torques are clipped. One episode does not establish robustness or learning savings.",
+        "Robot upper body and object are dynamic; pelvis follows the externally supported recorded path. Walking/balance are not simulated.",
+        "Orange ghost/path is original intended motion. Source mesh is displayed; collision geometry uses convex pieces. Preserved comparison and its support-point channel remain on port 8087."
+      ]
+    },
     {
       "name": "18 - Blue bin - current feedback MPC v6",
       "directory": "correction/outputs/contact_recovery_20261020/nominal_v6",
@@ -8,7 +23,7 @@
       "method_label": "CURRENT FEEDBACK MPC · v6 · REJECTED",
       "rejected": true,
       "stage_status": "Observed-state geometry/force proposals plus physical lookahead; not a single joint nonlinear trajectory optimization. 858 frames, 28.57 seconds, 191 replans, no object assistance or resets.",
-      "model_notes": "Latest completed nominal_v6, implementation checkpoint 9fc4b3e and saved source snapshot. Replan every 0.15 s with 0.45 s physical prediction. Robot/object state is observed during simulation; this viewer replays the saved result. Original retargeting is read from the preserved comparison without copying or altering it.",
+      "model_notes": "Previous nominal_v6, implementation checkpoint 9fc4b3e and saved source snapshot. Replan every 0.15 s with 0.45 s physical prediction. Robot/object state is observed during simulation; this viewer replays the saved result. Original retargeting is read from the preserved comparison without copying or altering it.",
       "display_limitations": [
         "Physical acceptance fails: object RMS 391.97 mm / 69.59 degrees; requested torque peaks at 2.198 times capacity.",
         "Robot upper body and object are dynamic; pelvis follows the externally supported recorded path. Walking/balance are not simulated.",

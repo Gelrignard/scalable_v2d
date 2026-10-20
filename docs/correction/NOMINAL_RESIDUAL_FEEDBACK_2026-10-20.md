@@ -1,5 +1,8 @@
 # Preserve the nominal correction and add bounded observed-state feedback
 
+Follow-up implementation: [predictive acceptance around the preserved staged
+controller](GUARDED_RESIDUAL_FEEDBACK_2026-10-20.md).
+
 ## Decision
 
 Following the user's review, preserve the best staged trajectory and its

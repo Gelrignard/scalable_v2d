@@ -47,6 +47,8 @@ def load_episode(entry):
     return dict(entry=entry,report=report,pad_report=pad_report,ref=ref,pad_ref=pad_ref,
                 records=records,pads=pads,count=count,
                 summaries=[original_report['cases']['original'], report['cases']['mechanics']],
+                guard_rows=json.loads(str(records[1]['guard_log_json']))
+                    if 'guard_log_json' in records[1] else [],
                 recovery_rows=json.loads(str(records[1]['recovery_log_json']))
                     if 'recovery_log_json' in records[1] else [])
 
@@ -234,6 +236,24 @@ class CatalogViewer:
                     f"Matching active patches at this saved frame: "
                     f"**{int(np.count_nonzero(s['records'][1]['recovery_touching'][j] & s['records'][1]['recovery_active'][j]))}**.\n\n"
                     +force_text+"\n\nRecorded replay of a closed-loop simulation; no optimizer is running in this viewer.")
+            guards=s['guard_rows']
+            if guards and not pad:
+                self.controller_status.visible=True
+                k=np.searchsorted([r['time_s'] for r in guards],float(ref['timestamps'][j]),side='right')-1
+                if k < 0:
+                    self.controller_status.content='Nominal execution before the first feedback decision.'
+                else:
+                    row=guards[k]
+                    decision='Enable bounded feedback' if row['enabled'] else 'Smooth return toward nominal'
+                    self.controller_status.content=(
+                        f"Last decision: **{row['time_s']:.2f} s — {decision}**.\n\n"
+                        f"Reasons: {', '.join(row['reasons']) or 'All relative adoption checks passed'}.\n\n"
+                        f"Predicted task cost, return / feedback: **{row['nominal']['task_cost']:.3f} / "
+                        f"{row['proposal'].get('task_cost',float('nan')):.3f}**.\n\n"
+                        f"Predicted impulse cost, return / feedback: **{row['nominal']['impulse_cost']:.3f} / "
+                        f"{row['proposal'].get('impulse_cost',float('nan')):.3f}**.\n\n"
+                        "Forecast costs are dimensionless diagnostics, not current measured force. "
+                        "Relative adoption is not physical acceptance. Saved closed-loop replay; no optimizer is running.")
             if pad:
                 measured=[np.linalg.norm(data['contact_forces'][j],axis=-1) for data in s['pads']]
                 plan=np.linalg.norm(ref['force_ff'][j],axis=-1)

@@ -17,6 +17,7 @@ from correction.src.optimization.surface_hypotheses import SurfacePoint
 from correction.src.optimization.surface_reference import smoothstep
 from correction.src.dynamics.contact_controller import ContactControllerConfig
 from correction.src.dynamics.surface_follow import SurfaceFollowConfig
+from correction.src.optimization.guarded_residual import GuardSettings
 from correction.src.pass_traj.experiment_record import snapshot_sources, process_cost
 from correction.scripts.compare_g1_controllers import assessed
 
@@ -65,6 +66,8 @@ def run(args):
     planning = inherited_planning_poses(reference, sequence)
     config = SurfaceFollowConfig(frames=None, gain=args.gain, surface_displacement_limit_m=.01,
         joint_offset_limit_rad=.04, joint_speed_limit_rad_s=.2, joint_acceleration_limit_rad_s2=1.)
+    guard = (GuardSettings(horizon_s=args.horizon, period_s=args.period,
+        disabled=args.guard_disabled, progress_path=str(args.output/'progress.json')) if args.guard else None)
     _, _, _, scene = load_strategy_scene(old['input_directory'])
     points = [SurfacePoint(**{k: np.asarray(v) if isinstance(v, list) else v for k, v in row.items()})
               for row in old['contacts']]
@@ -77,6 +80,7 @@ def run(args):
         'Exact saved initial_q/initial_velocity and source object initial state; verified against saved physical replay')
     report.update(status='running', source=str(args.source.resolve()), cases={},
         surface_feedback=asdict(config), object_assistance=False, resets_during_episode=0,
+        guard=None if guard is None else asdict(guard),
         ready_for_training=False, planning_sequence=str(args.planning_sequence.resolve()),
         scope='Staged nominal plus bounded arm-only observed-surface residual; inherited force guidance and clock',
         source_hashes={str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
@@ -87,7 +91,8 @@ def run(args):
         provenance=snapshot_sources(args.output, [Path(__file__), *[Path('correction/src')/name for name in (
             'dynamics/surface_follow.py', 'dynamics/object_relative_controller.py', 'dynamics/contact_controller.py',
             'dynamics/supported_robot.py', 'dynamics/execution_step.py', 'dynamics/contact_measurement.py',
-            'dynamics/torque_audit.py', 'optimization/manipulation_sequence.py')]]))
+            'dynamics/torque_audit.py', 'optimization/manipulation_sequence.py',
+            'optimization/guarded_residual.py', 'optimization/contact_mpc.py')]]))
     def write():
         (args.output/'report.json').write_text(json.dumps(report, indent=2)+'\n')
     write()
@@ -102,13 +107,13 @@ def run(args):
             command_velocity=reference['command_velocity'], kp_arm=300., kp_hand=old['kp_hand'],
             inertia_ff=True, inertia_ff_scale=old['inertia_ff_scale'], smooth_fixture=True,
             initial_q=reference['initial_q'], initial_velocity=reference['initial_velocity'],
-            contact_body_audit=True, surface_follow=config, surface_follow_plan=planning)
+            contact_body_audit=True, surface_follow=config, surface_follow_plan=planning, guarded_config=guard)
         np.savez_compressed(args.output/'mechanics.npz', **result)
         if len(result['q']) != len(reference['q']) or result['max_object_applied_force'] != 0:
             raise AssertionError('Complete unassisted physical episode required')
         first = int(np.flatnonzero(np.any(reference['contact_active'], axis=1))[0])
         keys = ('q', 'joint_velocities', 'object_positions', 'object_wxyz', 'torques', 'frame_peak_torque_fraction')
-        stop = len(reference['q']) if args.gain == 0 else first
+        stop = len(reference['q']) if args.gain == 0 or args.guard_disabled else first
         identical = {key: bool(np.array_equal(result[key][:stop], before[key][:stop])) for key in keys}
         if not all(identical.values()):
             raise AssertionError('Zero-residual execution must preserve nominal physics')
@@ -123,6 +128,11 @@ def run(args):
                 bound_conflicts=int(result['controller_surface_follow_bound_conflicts'])),
             followed_joint_names=[scene.kin.joint_names[scene.movable[i]] for i in result['surface_follow_joint_columns']],
             accepted=bool(summary['accepted_physics'] and result['controller_surface_follow_bounds_satisfied']))
+        if guard is not None:
+            rows = json.loads(str(result['guard_log_json']))
+            report['guard_results'] = dict(replans=len(rows), accepted=sum(row['enabled'] for row in rows),
+                evaluations=int(result['guard_evaluations']), max_prediction_error=float(result['guard_max_prediction_state_error']),
+                planning_wall_seconds=sum(row['wall_seconds'] for row in rows))
         print(json.dumps({key: report[key] for key in ('cases', 'exact_nominal_checks', 'observed_residual')}, indent=2), flush=True)
     except Exception as error:
         report.update(status='failed', error=f'{type(error).__name__}: {error}')
@@ -139,4 +149,11 @@ if __name__ == '__main__':
     parser.add_argument('--planning-sequence', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--gain', type=float, default=.25)
-    run(parser.parse_args())
+    parser.add_argument('--guard', action='store_true')
+    parser.add_argument('--guard-disabled', action='store_true', help='Zero residual regression with supervisor wired in')
+    parser.add_argument('--horizon', type=float, default=1.2)
+    parser.add_argument('--period', type=float, default=.3)
+    args = parser.parse_args()
+    if args.guard_disabled and not args.guard:
+        parser.error('--guard-disabled requires --guard')
+    run(args)

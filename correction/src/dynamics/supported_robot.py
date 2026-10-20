@@ -136,7 +136,7 @@ class SupportedRobotScene(RobotScene):
                 contact_controller=None, contact_normals_local=None, contact_active=None, object_feedback=None,wrench_residual=None,
                 point_local_trajectory=None, object_local_trajectory=None, inertia_ff_scale=1.,
                 contact_body_audit=False, surface_follow=None, surface_follow_plan=None, predictive_config=None,
-                recovery_config=None):
+                recovery_config=None, guarded_config=None):
         if not np.isfinite(inertia_ff_scale) or not 0<=inertia_ff_scale<=1:
             raise ValueError('Inertial feedforward scale must be in [0,1]')
         if (surface_follow is None) != (surface_follow_plan is None):
@@ -151,6 +151,9 @@ class SupportedRobotScene(RobotScene):
                 object_feedback is not None or wrench_residual is not None or contact_controller is None or
                 not self.moving_fixture or not smooth_fixture):
             raise ValueError('Contact recovery requires the base controller and smooth supported fixture')
+        if guarded_config is not None and (surface_follow is None or predictive_config is not None or
+                recovery_config is not None or not self.moving_fixture or not smooth_fixture):
+            raise ValueError('Guarded residual requires surface feedback and a smooth supported fixture')
         relative = times-times[0]
         spline = (CubicSpline(relative, q[:, 7+self.movable], axis=0) if command_velocity is None else
                   CubicHermiteSpline(relative, q[:, 7+self.movable], command_velocity, axis=0))
@@ -249,11 +252,13 @@ class SupportedRobotScene(RobotScene):
         upper = self.kin.robot.model.upperPositionLimit[7+self.movable]
         pair, sample = '', 0
         predictive = None
-        if predictive_config is not None or recovery_config is not None:
+        if predictive_config is not None or recovery_config is not None or guarded_config is not None:
             from ..optimization.contact_mpc import ContactMPC
             from ..optimization.contact_recovery import ContactRecovery
-            planner = ContactMPC if recovery_config is None else ContactRecovery
-            predictive = planner(self, controller, predictive_config if recovery_config is None else recovery_config,
+            from ..optimization.guarded_residual import GuardedResidual
+            planner = GuardedResidual if guarded_config is not None else (ContactMPC if recovery_config is None else ContactRecovery)
+            settings = guarded_config if guarded_config is not None else (predictive_config if recovery_config is None else recovery_config)
+            predictive = planner(self, controller, settings,
                 dict(times=step_times, commands=commands.copy(), velocities=velocities.copy(),
                      acceleration=acceleration.copy(), force=force.copy(), desired_p=desired_p,
                      desired_r=desired_r, fixture_p=fixture_p, fixture_r=fixture_r,

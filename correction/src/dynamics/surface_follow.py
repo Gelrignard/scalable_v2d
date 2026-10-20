@@ -105,6 +105,8 @@ class SurfaceFollowController(G1ContactController):
             raise ValueError('No arm joints have enough continuous margin for bounded feedback')
         self.target_offset = np.zeros(len(self.kp)); self.next_update = -1.
         self.update_count = 0; self.maximum_offset = 0.
+        # Optional supervisor switches the target, never clears filter memory.
+        self.feedback_enabled = True
 
     def step(self, time, q, velocity, planned_force, compensation):
         s, c = self.scene, self.follow_config
@@ -116,7 +118,7 @@ class SurfaceFollowController(G1ContactController):
         if time+1e-9 >= self.next_update:
             self.next_update = time+c.update_seconds
             self.target_offset[:] = 0.
-            if weight > 0 and c.gain > 0:
+            if weight > 0 and c.gain > 0 and self.feedback_enabled:
                 k = min(max(0, np.searchsorted(self.times, time, side='right')-1), len(self.times)-2)
                 u = np.clip((time-self.times[k])/(self.times[k+1]-self.times[k]), 0, 1)
                 local = (1-u)*self.local_points[k]+u*self.local_points[k+1]
