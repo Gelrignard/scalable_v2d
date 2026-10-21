@@ -136,7 +136,12 @@ class SupportedRobotScene(RobotScene):
                 contact_controller=None, contact_normals_local=None, contact_active=None, object_feedback=None,wrench_residual=None,
                 point_local_trajectory=None, object_local_trajectory=None, inertia_ff_scale=1.,
                 contact_body_audit=False, surface_follow=None, surface_follow_plan=None, predictive_config=None,
-                recovery_config=None, guarded_config=None):
+                recovery_config=None, guarded_config=None, staged_observation=None, staged_observation_plan=None):
+        if (staged_observation is None) != (staged_observation_plan is None):
+            raise ValueError('Staged observation feedback needs configuration and planning poses')
+        if staged_observation is not None and (contact_controller is None or any(x is not None for x in (
+                surface_follow, predictive_config, recovery_config, guarded_config, object_feedback, wrench_residual))):
+            raise ValueError('Staged observed force feedback is a separate non-predictive adapter')
         if not np.isfinite(inertia_ff_scale) or not 0<=inertia_ff_scale<=1:
             raise ValueError('Inertial feedforward scale must be in [0,1]')
         if (surface_follow is None) != (surface_follow_plan is None):
@@ -205,7 +210,13 @@ class SupportedRobotScene(RobotScene):
                 raise ValueError('Controller-aware replay requires forces, body points, inward normals and a contact schedule')
             if object_feedback is not None and wrench_residual is not None:
                 raise ValueError('Select one object-feedback adapter per rollout')
-            if surface_follow is not None:
+            if staged_observation is not None:
+                from .staged_observation import StagedObservationController
+                controller = StagedObservationController(self, force_points, contact_normals_local, contact_active,
+                    times, contact_controller, kp, point_local_trajectory=point_local_trajectory,
+                    object_local_trajectory=object_local_trajectory, observed_config=staged_observation,
+                    planning_poses=staged_observation_plan, kd=kd)
+            elif surface_follow is not None:
                 from .surface_follow import SurfaceFollowController
                 controller = SurfaceFollowController(self, force_points, contact_normals_local, contact_active,
                     times, contact_controller, kp, point_local_trajectory=point_local_trajectory,

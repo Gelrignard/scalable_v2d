@@ -254,6 +254,20 @@ class CatalogViewer:
                         f"{row['proposal'].get('impulse_cost',float('nan')):.3f}**.\n\n"
                         "Forecast costs are dimensionless diagnostics, not current measured force. "
                         "Relative adoption is not physical acceptance. Saved closed-loop replay; no optimizer is running.")
+            observed=s['records'][1]
+            if 'controller_observed_goal_wrench' in observed and not pad:
+                self.controller_status.visible=True
+                goal=observed['controller_observed_goal_wrench'][j]
+                unmet=observed['controller_observed_unmet_delta_wrench'][j]
+                matched=int(np.count_nonzero(observed['controller_observed_matched_contact'][j]))
+                delta=float(np.max(abs(observed['controller_observed_force_delta'][j])))
+                self.controller_status.content=(
+                    f'**Staged force feedback; no MPC.** Matching active patches: **{matched}**.\n\n'
+                    f'Max force increment: **{delta:.3f} N per axis**. '
+                    f'Requested additional vertical wrench: **{goal[2]:.3f} N**; '
+                    f'unallocated: **{unmet[2]:.3f} N**.\n\n'
+                    'These are commanded increments, not measured object forces. '
+                    'Saved physical replay; no optimizer runs in this viewer.')
             if pad:
                 measured=[np.linalg.norm(data['contact_forces'][j],axis=-1) for data in s['pads']]
                 plan=np.linalg.norm(ref['force_ff'][j],axis=-1)
