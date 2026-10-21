@@ -82,3 +82,4 @@ See [third-party notices](docs/THIRD_PARTY_NOTICES.md) before redistributing ups
 - [Preserve the nominal correction: bounded observed-state feedback](docs/correction/NOMINAL_RESIDUAL_FEEDBACK_2026-10-20.md)
 - [Predictive acceptance of staged feedback: implementation and validation](docs/correction/GUARDED_RESIDUAL_FEEDBACK_2026-10-20.md)
 - [Staged correction with observation feedback, without MPC](docs/correction/STAGED_OBSERVATION_FEEDBACK_2026-10-20.md)
+- [Additional desk and stroller full-episode feedback tests](docs/correction/STAGED_FEEDBACK_TRANSFER_2026-10-20.md)

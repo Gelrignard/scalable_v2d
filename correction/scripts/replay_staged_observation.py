@@ -8,7 +8,7 @@ from time import perf_counter
 
 import numpy as np
 
-from correction.scripts.replay_nominal_residual import inherited_planning_poses
+from correction.src.preprocessing.staged_planning import resolve_planning
 from correction.scripts.compare_g1_controllers import assessed
 from correction.src.preprocessing.strategy_bundle import load_strategy_scene, read_npz
 from correction.src.optimization.surface_hypotheses import SurfacePoint
@@ -23,34 +23,26 @@ def run(args):
     start = perf_counter(); initial_cpu = process_cost()['cpu_seconds']
     old = json.loads((args.source/'report.json').read_text())
     reference = read_npz(args.source/'reference.npz'); before = read_npz(args.source/'mechanics.npz')
-    ancestor = args.source.resolve(); chain = []
-    for _ in range(12):
-        path = ancestor/'report.json'; chain.append(path)
-        saved = json.loads(path.read_text())
-        if ancestor == args.planning_sequence.resolve():
-            break
-        ancestor = Path(saved['source']).resolve()
-    else:
-        raise ValueError('Planning sequence is not in source ancestry')
-    sequence_ref = read_npz(args.planning_sequence/'reference.npz')
-    for key in ('timestamps', 'object_positions', 'object_wxyz', 'object_local_points', 'contact_active'):
-        np.testing.assert_array_equal(reference[key], sequence_ref[key])
-    planning = inherited_planning_poses(reference, saved)
+    planning, planning_files, planning_contract = resolve_planning(args.source, reference, args.planning_sequence)
     cfg = StagedObservationConfig(gain=args.gain)
     args.output.mkdir(parents=True)
-    files = [args.source/'reference.npz', args.source/'mechanics.npz', *chain, args.planning_sequence/'reference.npz']
+    files = [args.source/'reference.npz', args.source/'mechanics.npz', *planning_files]
     report = {key: old[key] for key in ('input_directory', 'controller', 'physics', 'contacts',
                                        'phase_contacts', 'kp_hand', 'inertia_ff_scale')}
     report.update(status='running', source=str(args.source.resolve()), cases={},
-        planning_sequence=str(args.planning_sequence.resolve()), staged_observation=asdict(cfg),
+        planning_sequence=str(args.planning_sequence.resolve()) if args.planning_sequence else None,
+        planning_contract=planning_contract, staged_observation=asdict(cfg),
+        episode=old.get('episode'), source_planning_accepted=old.get('planning_accepted'),
+        source_planning_failure=old.get('diagnostic_fallback'),
         scope='Saved staged motion and force guidance plus instantaneous observed-state force QP',
         prediction_rollouts=0, object_assistance=False, resets_during_episode=0, ready_for_training=False,
         source_hashes={str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files},
-        limitations=['Fixed saved motion, grasp candidates and phase clock; no missing-contact recovery.',
+        limitations=[*old.get('limitations', []),
+            'Fixed saved motion, grasp candidates and phase clock; no missing-contact recovery.',
             'Privileged actual simulator pose/twist and contact sensors, not a learned observation pipeline.',
             'Static no-worse force/torque constraints permit inherited violations; physical caps still checked.',
             'Contact-force deltas are robot guidance, not guaranteed realized contact forces.'],
-        provenance=snapshot_sources(args.output, [Path(__file__), Path('correction/scripts/replay_nominal_residual.py'),
+        provenance=snapshot_sources(args.output, [Path(__file__), Path('correction/src/preprocessing/staged_planning.py'),
             *[Path('correction/src')/name for name in ('dynamics/staged_observation.py',
             'optimization/observed_force_update.py', 'dynamics/contact_controller.py', 'dynamics/supported_robot.py',
             'dynamics/execution_step.py', 'dynamics/contact_measurement.py', 'dynamics/torque_audit.py')]]))
@@ -74,7 +66,8 @@ def run(args):
         np.savez_compressed(args.output/'mechanics.npz', **result)
         if len(result['q']) != len(reference['q']) or result['max_object_applied_force'] != 0:
             raise AssertionError('Complete unassisted physical episode required')
-        first = int(np.flatnonzero(np.any(reference['contact_active'], axis=1))[0])
+        active_frames = np.flatnonzero(np.any(reference['contact_active'], axis=1))
+        first = int(active_frames[0]) if len(active_frames) else len(reference['q'])
         stop = len(reference['q']) if args.gain == 0 else first
         keys = ('q', 'joint_velocities', 'object_positions', 'object_wxyz', 'torques', 'frame_peak_torque_fraction')
         identical = {key: bool(np.array_equal(result[key][:stop], before[key][:stop])) for key in keys}
@@ -89,7 +82,7 @@ def run(args):
         report.update(status='complete', cases=dict(mechanics=summary), frames=len(reference['q']),
             duration_s=float(reference['timestamps'][-1]-reference['timestamps'][0]),
             unchanged_physical_frames=stop, exact_nominal_checks=identical, observation_audit=audit,
-            accepted=bool(summary['accepted_physics'] and bounds_ok))
+            accepted=bool(summary['accepted_physics'] and bounds_ok and old.get('planning_accepted') is not False))
         print(json.dumps(dict(cases=report['cases'], observation_audit=audit), indent=2), flush=True)
     except Exception as error:
         report.update(status='failed', error=f'{type(error).__name__}: {error}')
@@ -103,7 +96,8 @@ def run(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, required=True)
-    parser.add_argument('--planning-sequence', type=Path, required=True)
+    parser.add_argument('--planning-sequence', type=Path,
+        help='Required for the saved two-grasp bin plan; omitted only for verified single-interval transfers')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--gain', type=float, default=1.)
     run(parser.parse_args())

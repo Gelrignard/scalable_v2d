@@ -147,7 +147,7 @@ class CatalogViewer:
                      if state['pads'] else 'Robot replay only: no matching independent-pad replay was generated for this controller.\\n\\n')+
                     f'**Run provenance:** {entry.get("model_notes", "See saved experiment report.")}\\n\\n'
                     f'**Stage status:** {entry.get("stage_status", diagnostic or "Saved staged reference; physical acceptance remains separate.")}\\n\\n'
-                    f'**Contact selection:** {selection or "Preserved bin contact sequence."}\\n\\n'+
+                    f'**Contact selection:** {selection or "Saved per-episode contact sequence."}\\n\\n'+
                     '\\n\\n'.join(limitations)).replace('\\n','\n')
             self.loading=False
             self.update(); self.focus()
