@@ -124,4 +124,3 @@ def export_pilot(root, output):
     shutil.copy2(root/'prepared_input_audit.json',output/'prepared_input_audit.json')
     shutil.copy2(root/'batch_summary.json',output/'batch_summary.json')
     print(json.dumps(entries,indent=2),flush=True)
-

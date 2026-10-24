@@ -127,7 +127,7 @@ All 12 preparation/correction processes completed. There are 9,758 original fram
 
 Coverage denotes samples changed by a constructed candidate, not successful physical contact. Force guidance is nonzero in every episode, but no phase passes the nominal task-wrench residual gate. Satisfying the QP inequalities does not mean the desired wrench was produced.
 
-Automatic hand-mode segmentation produces many short phases (15 in the Tier 1 water-bottle case and 13 in Tier 2). The box and water-bottle candidates worsen position RMS in both tiers. Large tracking errors and actuator saturation remain; these are material failures, not merely stringent acceptance thresholds. The run retains the intermediate geometry/force candidates to make those failures inspectable.
+Automatic hand-mode segmentation produces many short phases (15 in the Tier 1 water-bottle case and 14 in Tier 2). The box and water-bottle candidates worsen position RMS in both tiers. Large tracking errors and actuator saturation remain; these are material failures, not merely stringent acceptance thresholds. The run retains the intermediate geometry/force candidates to make those failures inspectable.
 
 The same-tier input audit found exactly one unobserved endpoint in each book input (frame 900). It is held from the last valid observation, with its observation mask false. All 12 timelines retain every source frame. The six noisy-source hashes differ from their clean counterparts. Ninety-six stored source-file hashes match the implementation used for this batch.
 
@@ -135,7 +135,7 @@ The same-tier input audit found exactly one unobserved endpoint in each book inp
 
 - Local CPU only, at most two workers, no GPU hours or cloud charges.
 - Sum of preparation worker wall times: 37.65 minutes. Sum of correction plus physical replay worker wall times: 58.53 minutes; summed correction process CPU time: 58.55 CPU-minutes. These sums are not elapsed calendar time.
-- Span from the first correction start to the last finish: 29.79 minutes, including overlap and orchestration gaps. Per-case correction/replay costs: 1.83–9.21 minutes.
+- Span from the first correction start to the last finish: 29.79 minutes, including overlap and orchestration gaps. Per-case correction/replay costs: 1.83 to 9.21 minutes.
 - Largest measured correction process peak resident memory: 1.34 GiB; excludes other processes and preparation workers.
 - 21 focused unit tests pass, compilation checks pass, all full-episode arrays are finite, and no object assistance or reset warnings were found. Unit tests do not establish manipulation success.
 - All batch experiment processes have terminated; no viewer was added.
@@ -147,4 +147,19 @@ The same-tier input audit found exactly one unobserved endpoint in each book inp
 - Archive: `correction/outputs/rl_pilot_handoff_20261024.zip`, with sibling `.zip.sha256`.
 - [Artifact contract](RL_PILOT_ARTIFACT_FORMAT.md) and [method handoff](RL_HANDOFF_2026-10-24.md).
 
-Export validation and archive integrity will be recorded below once packaging finishes.
+The portable export passed validation for all 12 entries: file hashes, complete
+frame order, finite arrays, quaternion conventions, force/patch shapes, paired
+object targets, identical physical initial conditions, and zero applied object
+assistance. The six source pairs have distinct clean/noisy input hashes. This
+integrity result does not change the physical rejection labels.
+
+The decoder logs contain trimesh texture-processing `All-NaN slice` warnings.
+The exported reference and physics arrays are finite; these texture warnings
+must not be confused with a successful physics check or suppressed from the
+record. No physics reset/instability warning or traceback appeared in the
+completed correction logs.
+
+The archive SHA-256 is in its `.zip.sha256` sidecar; archive byte count and ZIP
+CRC verification are recorded in `rl_pilot_handoff_20261024.packaging.json`.
+Generated data and archives remain Git-ignored; source, tests and documentation
+are committed locally on main. No push was performed in this task.
