@@ -1,12 +1,14 @@
 # Scalable V2D robot grounding
 
-Research prototype for the [NVIDIA Video to Data Challenge, Track 2](https://nvidia-isaac.github.io/video_to_data/v2d_challenge/): use human and object observations to construct a contact-aware robot reference, then jointly refine motion and contact forces through trajectory optimization before policy training.
+Research prototype for the [NVIDIA Video to Data Challenge, Track 2](https://nvidia-isaac.github.io/video_to_data/v2d_challenge/): use human and object observations to construct a contact-aware robot reference, then refine contact geometry, force guidance and robot motion in staged optimization before policy training.
 
 The research question is whether this preprocessing reduces the GPU time and environment steps needed to learn useful manipulation policies. That benefit has **not yet been measured**.
 
 ## Start here
 
-- [New coupled correction: uncertain observations, continuous motion, and validation status](docs/correction/COUPLED_HORIZON.md)
+- [Current method and downstream RL handoff: equations, artifacts, results, SuperMimic and batch readiness (24 October)](docs/correction/RL_HANDOFF_2026-10-24.md)
+- [Current non-MPC observed-force adapter](docs/correction/STAGED_OBSERVATION_FEEDBACK_2026-10-20.md) and [three-episode findings](docs/correction/STAGED_FEEDBACK_TRANSFER_2026-10-20.md)
+- [Earlier coupled correction experiment: uncertain observations and validation status](docs/correction/COUPLED_HORIZON.md)
 - [Earlier method and mathematical derivation](docs/correction/METHOD.md)
 - [G1/Dex3 supported physics: robot integration, errors, and SONIC's role](docs/correction/SUPPORTED_G1.md)
 - [Three random full episodes: supported pelvis, before/after physics and failed tracking results](docs/correction/FULL_EPISODE_COMPARISON.md)
@@ -23,13 +25,13 @@ The research question is whether this preprocessing reduces the GPU time and env
 | Component | Status |
 |---|---|
 | [Contact-aware retargeting](retargeting/README.md) | CPU body/hand IK, explicit contact targets, canonical input, diagnostics, viewers, and reference export |
-| [Dynamics-guided correction](correction/README.md) | Experimental coupled observation/contact/trajectory optimizer with CPU physical tests; earlier inverse-dynamics and pose-repair baselines remain available |
-| New coupled correction validation | Controlled two-pad physics passes; recorded G1 first pickup fails convergence and geometry checks. No accepted G1 result yet |
-| Earlier Tier 1 demonstrations | Supported G1/Dex3 carry misses the 10 mm / 5 degree gate; separate six-pad experiment passes its reduced-model checks |
+| [Dynamics-guided correction](correction/README.md) | Current method uses staged surface fitting, quasistatic force allocation and robot spline refinement; optional observed-state force QP during replay |
+| Current G1 validation | Preserved bin improves position RMS from 444.99 to 48.48 mm but fails physical acceptance. Desk/stroller transfers fail; observation adapter is not promoted. No accepted full G1 episode in this comparison |
+| Earlier experiments | Coupled-horizon, MPC and independent-pad results remain separate historical diagnostics |
 | Tier 2 policy comparison | Planned; general episode/noisy-input support and the trainer remain to be implemented |
 | Tier 3 reconstruction | Planned; no integrated video-to-motion reconstruction pipeline yet |
 
-Kinematic playback is not physical simulation. The [supported G1 experiment](docs/correction/SUPPORTED_G1.md) uses actual arm/hand/waist dynamics and torque-limited control with a fixed pelvis and legs. It demonstrates book carrying, but remaining tracking errors, torque saturation and contact changes prevent certification as a training reference. The [six-pad experiment](docs/correction/SUPPORTED_MANIPULATION.md) passes its separate reduced-model checks. No trained policy, unsupported whole-body execution certificate, or leaderboard result is included.
+Kinematic playback is not physical simulation. Current G1 comparisons simulate arm/hand/waist and object dynamics with torque limits while an external fixture follows the recorded pelvis path. Walking and balance are excluded. These are experimental learning references, not certified expert trajectories or official whole-body rollouts. No trained policy or leaderboard result is included. Read the [current handoff](docs/correction/RL_HANDOFF_2026-10-24.md) before using historical method documents or exporting to training.
 
 ## Optional NVIDIA dependency
 

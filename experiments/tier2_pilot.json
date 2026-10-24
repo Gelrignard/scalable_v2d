@@ -25,7 +25,7 @@
   "notes": [
     "Same trainer, object physics, controller, observations, rewards, and evaluation for all variants.",
     "No clean Tier 1 trajectory or same-episode clean-trained policy in Tier 2 preprocessing/training.",
-    "The current correction is a short Tier 1 book prototype, not yet generalized to this roster.",
+    "Read docs/correction/RL_HANDOFF_2026-10-24.md: current staged correction has a useful but physically rejected full bin reference and failed desk/stroller transfers; it is not generalized to this roster.",
     "Initial comparison isolates the combined pipeline; contact_aware versus contact_aware_corrected isolates correction."
   ]
 }

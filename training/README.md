@@ -2,8 +2,12 @@
 
 Branch: work/tier2-rl. This directory is a handoff scaffold, not a trainer.
 
-Read the method, compute handoff, docs/SETUP.md, docs/PARALLEL_WORK.md, and
-experiments/tier2_pilot.json before implementation.
+Start with the [current method and RL handoff](../docs/correction/RL_HANDOFF_2026-10-24.md).
+It specifies the staged optimization, optional observed-state feedback, exact
+artifact meanings, failed physical checks, and proposed controlled RL comparison.
+Also read the compute handoff, docs/SETUP.md, docs/PARALLEL_WORK.md, and
+experiments/tier2_pilot.json before implementation. Earlier coupled/MPC documents
+are historical experiments, not the current training contract.
 
 ## Deliverables
 
@@ -27,8 +31,14 @@ experiments/tier2_pilot.json before implementation.
   Tier 2 dropouts need explicit handling; do not silently omit scored frames.
 - Our canonical-input Parquet export needs scene metadata integration; the
   default cached example export does not establish arbitrary-episode support.
-- correction/scripts/book_pipeline.py selects a Tier 1 book phase by fixed frame indices.
-  It is not a general corrector for all five episodes.
+- correction/scripts/transfer_episode.py supports one contact interval; the
+  preserved bin has a separately constructed two-phase sequence. Neither is
+  an automatic general corrector for all five episodes. The older book script
+  is not the current method.
+- Current staged NPZs are diagnostic artifacts, not complete portable training
+  bundles. Planned, commanded and measured forces must remain separate. The
+  preserved bin is useful for an imperfect-reference experiment but does not
+  pass physical acceptance; desk/stroller transfers fail upstream planning.
 - Sticking, grasp/release, environmental support and full physical execution
   remain unresolved. Record unsupported phases/failures instead of claiming
   whole-episode dynamic feasibility.

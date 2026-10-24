@@ -1,9 +1,14 @@
 # Trajectory correction
 
-The opt-in [observed-state recovery prototype](../docs/correction/OBSERVED_CONTACT_RECOVERY.md)
-uses actual object/robot state, explicit collision-patch alternatives, bounded
-accumulated commands and physical prediction. Its completed trials have not
-passed task acceptance; the retained bin comparison remains the default.
+Read the [current method and RL handoff (24 October)](../docs/correction/RL_HANDOFF_2026-10-24.md)
+first. The current method is staged contact/force/trajectory optimization with
+an optional instantaneous observed-state force QP. This adapter does not use MPC
+or replan missing contacts. The preserved bin remains the reference comparison;
+the adapter and desk/stroller transfers have not passed physical acceptance.
+
+The [observed-state recovery prototype](../docs/correction/OBSERVED_CONTACT_RECOVERY.md)
+and coupled/MPC sections below document earlier experiments. Do not treat them
+as the current export or controller contract.
 
 Refine a retargeted manipulation reference using object dynamics, contact-force
 optimization, and local arm/hand trajectory optimization. Dataset decoding is
