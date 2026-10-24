@@ -118,7 +118,7 @@ class SurfaceLibrary:
         _, geom, local, normal, triangle = min(candidates, key=lambda row: row[0])
         return geom, local, normal, triangle
 
-    def hypothesis(self, raw, frame, family, region_normals):
+    def hypothesis(self, raw, frame, family, region_normals, *, sides=None):
         s = self.scene
         q, p, quat = raw['q'][frame], raw['object_positions'][frame], raw['object_wxyz'][frame]
         s.set_state(q, p, quat)
@@ -128,6 +128,10 @@ class SurfaceLibrary:
             raise ValueError('Unknown surface hypothesis family')
         columns = [1, 2, 4, 5] if family in ('coherent_four', 'support_any', 'centered_four',
                     'centered_proximal_four', 'centered_left_proximal_four') else list(range(6))
+        if sides is not None:
+            columns = [i for i in columns if ('left' if i < 3 else 'right') in sides]
+            if not columns:
+                raise ValueError('At least one demonstrated hand is required')
         result = []
         used_bodies = set()
         for i in columns:

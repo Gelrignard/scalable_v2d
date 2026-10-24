@@ -15,18 +15,25 @@ from .surface_hypotheses import contact_kinematics
 class RigidGrasp:
     def __init__(self,scene,points,q,position,wxyz):
         self.scene,self.points,self.grasp=scene,points,q.copy()
-        self.bodies=[scene.model.body(side+'_hand_palm_link').id for side in ('left','right')]
+        self.sides=[side for side in ('left','right') if any(
+            scene.model.body(p.body).name.startswith(side+'_') for p in points)]
+        if not self.sides:
+            raise ValueError('No participating robot hand in grasp')
+        self.bodies=[scene.model.body(side+'_hand_palm_link').id for side in self.sides]
         scene.set_state(q,position,wxyz)
         r=Rotation.from_quat(wxyz,scalar_first=True)
         self.local_p=r.inv().apply(scene.data.xpos[self.bodies]-position)
         self.local_r=[r.inv()*Rotation.from_matrix(scene.data.xmat[b].reshape(3,3)) for b in self.bodies]
         self.outward=np.array([np.mean([p.object_outward for p in points if side in scene.model.body(p.body).name],axis=0)
-                              for side in ('left','right')])
+                              for side in self.sides])
         self.outward/=np.linalg.norm(self.outward,axis=1)[:,None]
 
     def solve(self,nominal,position,wxyz,previous,*,clearance=0.,lift=0.,seconds=.3,
               palm_targets=None, finger_q=None, arm_neighborhood=.9, step_dt=None):
-        s=self.scene; start=perf_counter(); q=nominal.copy(); q[7+s.movable[s.hand]]=self.grasp[7+s.movable[s.hand]]
+        s=self.scene; start=perf_counter(); q=nominal.copy()
+        grasp_hand = np.array([s.hand[j] and any(s.kin.joint_names[i].startswith(side+'_') for side in self.sides)
+                              for j,i in enumerate(s.movable)])
+        q[7+s.movable[grasp_hand]]=self.grasp[7+s.movable[grasp_hand]]
         if finger_q is not None:
             q[7+s.movable[s.hand]] = finger_q[7+s.movable[s.hand]]
         cols=np.flatnonzero(~s.hand); ids=7+s.movable[cols]; n=len(ids)

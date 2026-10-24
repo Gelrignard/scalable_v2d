@@ -7,6 +7,7 @@ The research question is whether this preprocessing reduces the GPU time and env
 ## Start here
 
 - [Current method and downstream RL handoff: equations, artifacts, results, SuperMimic and batch readiness (24 October)](docs/correction/RL_HANDOFF_2026-10-24.md)
+- [Paired six-episode Tier 1/2 pilot: full timelines, automatic stages and execution records](docs/correction/PAIRED_PILOT_RUN_2026-10-24.md)
 - [Current non-MPC observed-force adapter](docs/correction/STAGED_OBSERVATION_FEEDBACK_2026-10-20.md) and [three-episode findings](docs/correction/STAGED_FEEDBACK_TRANSFER_2026-10-20.md)
 - [Earlier coupled correction experiment: uncertain observations and validation status](docs/correction/COUPLED_HORIZON.md)
 - [Earlier method and mathematical derivation](docs/correction/METHOD.md)
@@ -28,7 +29,7 @@ The research question is whether this preprocessing reduces the GPU time and env
 | [Dynamics-guided correction](correction/README.md) | Current method uses staged surface fitting, quasistatic force allocation and robot spline refinement; optional observed-state force QP during replay |
 | Current G1 validation | Preserved bin improves position RMS from 444.99 to 48.48 mm but fails physical acceptance. Desk/stroller transfers fail; observation adapter is not promoted. No accepted full G1 episode in this comparison |
 | Earlier experiments | Coupled-horizon, MPC and independent-pad results remain separate historical diagnostics |
-| Tier 2 policy comparison | Planned; general episode/noisy-input support and the trainer remain to be implemented |
+| Tier 1/2 policy comparison | Paired six-episode data preparation and automatic staged correction implemented; reference quality remains experimental and the trainer remains to be implemented |
 | Tier 3 reconstruction | Planned; no integrated video-to-motion reconstruction pipeline yet |
 
 Kinematic playback is not physical simulation. Current G1 comparisons simulate arm/hand/waist and object dynamics with torque limits while an external fixture follows the recorded pelvis path. Walking and balance are excluded. These are experimental learning references, not certified expert trajectories or official whole-body rollouts. No trained policy or leaderboard result is included. Read the [current handoff](docs/correction/RL_HANDOFF_2026-10-24.md) before using historical method documents or exporting to training.

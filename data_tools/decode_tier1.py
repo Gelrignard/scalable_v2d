@@ -17,6 +17,7 @@ import torch
 from soma import SOMALayer
 
 from correction.src.dynamics.object_wrench import contiguous_runs
+from data_tools.observation_completion import complete_object_poses
 
 
 def level_rotation(normal):
@@ -28,22 +29,31 @@ def level_rotation(normal):
     return Rotation.from_rotvec(cross / sine * np.arctan2(sine, normal[2])).as_matrix()
 
 
-def decode(data, output, episode, assets):
+def decode(data, output, episode, assets, *, tier=1, all_frames=False):
     torch.set_num_threads(4)
     started = perf_counter()
     records = [json.loads(s) for s in (data / "meta/episodes_metadata.jsonl").read_text().splitlines()]
     metadata = next(item for item in records if item["episode_index"] == episode)
     source = data / f"data/chunk-000/episode_{episode:06d}.parquet"
     table = pq.read_table(source)
+    manifest = json.loads((data / 'download_manifest.json').read_text())
+    if manifest['tier'] != tier or manifest['revision'] != '5f68335f3acc802033d1e80728c1633197521de8':
+        raise ValueError('Dataset tier/revision does not match requested decoding provenance')
+    variant = (table.schema.metadata or {}).get(b'trajectory_variant', b'').decode()
+    if tier == 2 and variant != 'tier_2_synthetic_noise':
+        raise ValueError('Tier 2 must come from its own noised parquet, not clean Tier 1')
     info = json.loads((data / "meta/info.json").read_text())
     names = [name.removesuffix(".rx") for name in info["features"]["observation.human.pose"]["names"][::3]]
     arrays = {key: np.asarray(table[key].to_pylist(), dtype=np.float32) for key in (
         "observation.human.pose", "observation.human.translation", "observation.human.identity_coeffs",
         "observation.human.scale_params", "observation.human.bone_length_flexibles", "observation.object.pose")}
     visible = np.asarray(table["observation.object.visible"], dtype=bool)
-    selected = max(contiguous_runs(visible), key=len)
-    # Never interpret zero-filled object poses or bridge a missing observation.
-    if len(selected) != visible.sum():
+    completed, observed = complete_object_poses(np.asarray(table['timestamp'], dtype=float),
+                                               arrays['observation.object.pose'], visible)
+    selected = np.arange(len(table)) if all_frames else max(contiguous_runs(observed), key=len)
+    # The legacy segment mode still refuses disjoint observations; full-timeline
+    # mode retains completed poses together with their false observation masks.
+    if not all_frames and len(selected) != observed.sum():
         raise ValueError("this first adapter requires one contiguous visible segment")
     shape_keys = ("observation.human.identity_coeffs", "observation.human.scale_params", "observation.human.bone_length_flexibles")
     for key in shape_keys[:2]:
@@ -88,7 +98,7 @@ def decode(data, output, episode, assets):
     translation_world = leveling @ translation_pre + [0., 0., offset_pre]
     positions = transforms[:, :, :3, 3] @ rotation_world.T + translation_world
     rotations = Rotation.from_matrix((rotation_world @ transforms[:, :, :3, :3]).reshape(-1, 3, 3)).as_quat(scalar_first=True).reshape(len(selected), 77, 4)
-    object_cv = arrays["observation.object.pose"][selected].astype(float)
+    object_cv = completed[selected]
     world_from_cv = rotation_world @ cv_to_soma
     object_positions = object_cv[:, :3] @ world_from_cv.T + translation_world
     object_rotations = Rotation.from_matrix(world_from_cv @ Rotation.from_quat(object_cv[:, 3:], scalar_first=True).as_matrix()).as_quat(scalar_first=True)
@@ -97,20 +107,26 @@ def decode(data, output, episode, assets):
     reference_soma = np.eye(4)
     reference_soma[:3, :3], reference_soma[:3, 3] = rotation_world, translation_world
     report = {"source": str(source.resolve()), "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
-              "tier": 1, "episode_index": episode, "dataset_revision": "5f68335f3acc802033d1e80728c1633197521de8",
+              "tier": tier, "episode_index": episode, "dataset_revision": manifest['revision'],
               "soma_package": "py-soma-x==0.2.1", "soma_asset_revision": "466879a83d57eabf3d875ded2d869f2075f90348",
               "coordinate_frame": "world_z_up", "selected_source_indices": selected.tolist(),
               "world_from_source_cv": transform.tolist(), "world_from_source_soma": reference_soma.tolist(),
               "ground_plane_source_cv": plane.tolist(), "support_surface": str((data / metadata["support_surface"]).resolve()),
               "source_fps": 30., "timestamp_source": "original_challenge_parquet",
               "body_decode": "MHR identity/scale and time-varying flexible bones applied per frame; official SOMA CPU forward kinematics; no vertex correctives",
-              "dropped_invisible_frames": np.flatnonzero(~visible).tolist(),
-              "object_motion_edited": False, "elapsed_seconds": perf_counter()-started}
+              "dropped_invisible_frames": [] if all_frames else np.flatnonzero(~observed).tolist(),
+              "object_observed_mask": observed[selected].tolist(),
+              "object_visibility_mask": visible[selected].tolist(),
+              "object_imputed_frames": np.flatnonzero(~observed[selected]).tolist(),
+              "observation_completion": 'Linear position/SLERP on same-tier visible observations; nearest endpoint hold; imputed frames have zero observation confidence',
+              "trajectory_variant": variant,
+              "object_motion_edited": bool(np.any(~observed[selected])), "elapsed_seconds": perf_counter()-started}
     output.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(output, joint_names=np.array(names), positions=positions, rotations_wxyz=rotations,
                         timestamps=np.asarray(table["timestamp"], dtype=float)[selected],
                         object_positions=object_positions, object_wxyz=object_rotations,
                         object_mesh=str((data / metadata["mesh"]).resolve()), sequence_id=metadata["sequence_id"],
+                        object_observed_mask=observed[selected], raw_object_pose_source_cv=arrays['observation.object.pose'][selected],
                         metadata_json=json.dumps(report), coordinate_frame="world_z_up", units="metres_seconds")
     output.with_suffix(".json").write_text(json.dumps(report, indent=2))
     print(json.dumps({"saved": str(output.resolve()), "frames": len(selected), "dropped": report["dropped_invisible_frames"],
@@ -124,6 +140,8 @@ if __name__ == "__main__":
     parser.add_argument("--data", type=Path, default=Path("correction/data/tier1"))
     parser.add_argument("--assets", type=Path, default=Path("correction/data/soma_assets"))
     parser.add_argument("--episode", type=int, default=11)
+    parser.add_argument("--tier", type=int, choices=(1, 2), default=1)
+    parser.add_argument("--all-frames", action='store_true', help='Retain full timeline; interpolate missing object poses with explicit masks')
     parser.add_argument("--output", type=Path, default=Path("correction/outputs/tier1_book/human_motion.npz"))
     args = parser.parse_args()
-    decode(args.data, args.output, args.episode, args.assets)
+    decode(args.data, args.output, args.episode, args.assets, tier=args.tier, all_frames=args.all_frames)

@@ -2,6 +2,12 @@
 
 Status checked on 24 October 2026 against source commit `2d4df40` and saved full-episode results. This document describes the implemented staged method; the earlier coupled-horizon and MPC documents describe separate experiments. No policy training or new physical rollout was performed for this documentation audit.
 
+Subsequent work: the [paired six-episode Tier 1/2 pilot](PAIRED_PILOT_RUN_2026-10-24.md)
+adds explicit tier-aware decoding, full-frame masks, automatic multi-phase
+candidates and an experimental NPZ handoff. Refer to that run record for the
+new implementation and results; the readiness table below records the earlier
+audit and is not a claim that those adapters are still absent.
+
 ## 1. What we have, and what we have not established
 
 We construct robot contact surfaces, robot motion and force guidance in successive optimization stages. During execution, an optional small force-allocation QP uses actual simulator state. The robot and object then evolve under contact dynamics. The object is never moved by writing the desired trajectory into its state.

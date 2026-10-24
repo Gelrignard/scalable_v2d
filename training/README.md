@@ -9,34 +9,37 @@ Also read the compute handoff, docs/SETUP.md, docs/PARALLEL_WORK.md, and
 experiments/tier2_pilot.json before implementation. Earlier coupled/MPC documents
 are historical experiments, not the current training contract.
 
+The [paired six-episode pilot](../docs/correction/PAIRED_PILOT_RUN_2026-10-24.md)
+extends the original roster with episode 18 and supplies Tier 1/2 reference
+bundles. Its manifest and physical rejection labels must accompany training.
+
 ## Deliverables
 
 1. Prepare a separate FlashCHORD runtime compatible with the current submission
    kit. Pin its revision and container; do not replace the CPU upstream checkout.
-2. Add an explicit Tier 2 download/decode adapter with correct source provenance,
-   masks, timestamps, missing-observation treatment, and saved world transforms.
+2. Use the explicit `--tier 2 --all-frames` decoder and paired-pilot manifests;
+   preserve observation masks, timestamps and source-to-world transforms.
 3. Import our robot references into motion_v1 with correct joint mapping,
    object physics, supports, and SONIC/controller semantics.
 4. Implement baseline/our-retargeting/corrected-reference runs under identical
    learner settings. Profile 24 GB memory fit before longer training.
 5. Evaluate unassisted learned-policy rollouts and export the exact toolkit
    format. Track environment steps, updates, wall time, VRAM, and success curves.
-6. Extend to the five specified episodes and paired seeds after the first works.
+6. Extend to all six matched pilot episodes and paired seeds after the first works.
 
 ## Existing gaps that must not be hidden
 
-- data_tools/fetch_sample.py and data_tools/decode_tier1.py hardcode Tier 1 provenance.
-  Passing Tier 2 files without adapting this code is not an acceptable solution.
-- The body decoder currently requires one contiguous visible object segment.
-  Tier 2 dropouts need explicit handling; do not silently omit scored frames.
+- Fetch/decode now support explicit Tier 2 provenance. The full-frame decoder
+  interpolates missing object observations with masks; it is not a validated
+  general denoiser or a substitute for uncertainty handling in learning.
 - Our canonical-input Parquet export needs scene metadata integration; the
   default cached example export does not establish arbitrary-episode support.
-- correction/scripts/transfer_episode.py supports one contact interval; the
-  preserved bin has a separately constructed two-phase sequence. Neither is
-  an automatic general corrector for all five episodes. The older book script
-  is not the current method.
-- Current staged NPZs are diagnostic artifacts, not complete portable training
-  bundles. Planned, commanded and measured forces must remain separate. The
+- correction/scripts/correct_rl_pilot_episode.py adds automatic hand-mode
+  phases, with explicit failed/unchanged segments. This is experimental;
+  the preserved bin still has a separately refined two-phase sequence.
+- Pilot NPZs have named-joint exports and manifests, but need a learner/action
+  adapter and official-runtime validation. Planned, commanded and measured
+  forces must remain separate. The
   preserved bin is useful for an imperfect-reference experiment but does not
   pass physical acceptance; desk/stroller transfers fail upstream planning.
 - Sticking, grasp/release, environmental support and full physical execution
